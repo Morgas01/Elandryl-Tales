@@ -1,0 +1,123 @@
+/** Board / Core **/
+.Board {
+    background-color: black;
+}
+.Board, .Board * {
+    color: white;
+    font-family: lucida console,monospace;
+    font-size:20px;
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+}
+.Board input {
+    color:black;
+    text-shadow:none;
+    font-size:12px;
+}
+.Board .overlay {
+    background-color: rgba(255, 255, 255, 0.8);
+}
+
+/** GUIElement **/
+.Layer>.GUIElement {
+	background-image: linear-gradient(#bbbbbb, #444444);
+}
+
+/** Panel **/
+.Board .panel {
+    background: #4444FF none;
+    border: 4px solid #FFFFFF;
+    box-shadow: 0 0 0 1px black;
+    border-radius: 10px;
+    margin: 1px;
+}
+.panel>legend {
+    background: #4444FF none;
+    border: 4px solid #FFFFFF;
+    border-bottom:0 none;
+    border-radius: 10px 10px 0 0;
+    box-shadow: 0 -1px 0 1px black;
+    margin: 1px;
+    position:relative;
+    bottom: 10px;
+}
+
+/** GUIElement.Menu **/
+.GUIElement.Menu .menuitem {
+    margin: 10px 10px 10px 30px;
+}
+.GUIElement.Menu[data-type="TABLE"] .menuitem span:first-child,
+.GUIElement.Menu[data-type="GRID"] .menuitem {	
+    padding-left:30px;
+}
+.GUIElement.Menu:not(:hover):not([data-type="TABLE"]) .menuitem.active:before,
+.GUIElement.Menu:not(:hover)[data-type="TABLE"] .menuitem.active span:first-child:before,
+.GUIElement.Menu:not([data-type="TABLE"]) .menuitem:hover:before,
+.GUIElement.Menu[data-type="TABLE"] .menuitem:hover span:first-child:before {
+    content: "►";
+    margin: 0 0 0 -20px;
+    position: absolute;
+}
+.GUIElement.Menu .menuitem:hover {
+	cursor: pointer;
+}
+.GUIElement.Menu .menuitem.selected {
+    background-color: #FFFFFF;
+}
+.GUIElement.Menu .menuitem.disabled {
+    color: #888;
+}
+
+/** MapMaker **/
+.MapMaker .images.panel {
+	height:calc(100% - 10px);
+	position: relative;
+}
+
+/** TextBox **/
+.TextBox :last-child:after {
+	display: inline-block;
+	padding:0 10px;
+}
+.TextBox.stop :last-child:after {
+  content: "□";
+}
+.TextBox.complete :last-child:after {
+  content: "■";
+}
+
+/** Layer.Persistance **/
+.Layer.Persistance {
+	background-color: #000;
+}
+.Layer.Persistance .Menu:first-child {
+	border-spacing: 0 10px;
+	background-image: none;
+}
+.Layer.Persistance .Menu:first-child .menuitem {
+	height: 40px;
+}
+.Layer.Persistance .Menu:first-child .menuitem span {
+	vertical-align: middle;
+    background-color: #4444FF;
+    border-width: 4px 0;
+    border-style: solid;
+    border-color: #FFF
+}
+.Layer.Persistance .Menu:first-child .menuitem span:first-child {
+	border-left-width: 4px;
+	border-top-left-radius:10px;
+	border-bottom-left-radius:10px;
+}
+.Layer.Persistance .Menu:first-child .menuitem span:last-child {
+	border-right-width: 4px;
+	border-top-right-radius:10px;
+	border-bottom-right-radius:10px;
+}
+/*
+.Layer.Persistance .Menu:first-child .menuitem span:only-child {
+	position: absolute;
+	width: calc(100% - 8px);
+	padding: 5px 0;
+	text-align: center;
+}
+*/

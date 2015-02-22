@@ -1,0 +1,12 @@
+{
+	"cursor":{
+		"urls":["target.svg",null,null,null,null,null,null,null,null],
+		"name":"",
+		"size":50,
+		"offset":25
+	},
+	"map":"emptyMap",
+	"position":{"x":0,"y":0},
+	"quests":[],
+	"actions":[]
+}

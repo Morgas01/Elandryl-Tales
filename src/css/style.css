@@ -1,0 +1,38 @@
+html,body {
+	width:100%;
+	height:100%;
+	padding:0;
+	margin:0;
+	border:0 none;
+	border-collapse: collapse;
+}
+body {
+	display:flex;
+	flex-direction:column;
+}
+#header, #footer {
+	flex-basis:40px;
+	background-color: black;
+}
+#header {
+	margin-bottom:10px;
+}
+#footer {
+	margin-top:10px;
+}
+#main-content {
+	flex-grow:1;
+	display:flex;
+}
+#main-content > div {
+	display:inline-block;
+	height:100%;
+}
+#left-side, #right-side {
+	flex-basis:25%;
+	flex-shrink:1;
+}
+#board {
+	flex-basis:50%;
+	flex-grow:1;
+}
