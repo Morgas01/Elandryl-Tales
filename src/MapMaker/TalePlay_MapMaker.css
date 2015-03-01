@@ -1,0 +1,185 @@
+/*~~~ css/structure/core.css ~~~*/
+.Board {
+	position: relative;
+}
+.Board,.Board .Layer{
+	height:100%;
+	width:100%;
+}
+.Board .Layer,.Board .panel,.Board .overlay , .Board .center {
+	position:absolute;
+}
+.Board .overlay {
+    top:0;
+    right:0;
+    bottom:0;
+    left:0;
+}
+.Board .center {
+	top:50%;
+	left:50%;
+	transform:translateX(-50%) translateY(-50%);
+}
+.Board .hidden {
+	display:none;
+}
+/*~~~ css/structure/GUIElement.ControllerManager.css ~~~*/
+.GUIElement.ControllerManager .DeviceActions,
+.GUIElement.ControllerManager .MappingActions {
+	white-space: nowrap;
+}
+.GUIElement.ControllerManager .controllers,
+.GUIElement.ControllerManager .mappings {
+    vertical-align: top;
+}
+.GUIElement.ControllerManager .Menu {
+    width: 100%;
+}
+/*~~~ css/structure/GUIElement.Menu.css ~~~*/
+.GUIElement.Menu[data-type="VERTICAL"] .menuitem {
+    display: block;
+}
+.GUIElement.Menu[data-type="TABLE"],
+.GUIElement.Menu[data-type="GRID"] {
+    display:table;
+}
+.GUIElement.Menu[data-type="TABLE"] .menuitem,
+.GUIElement.Menu[data-type="TABLE"] .menuheader,
+.GUIElement.Menu[data-type="GRID"] .row {
+    display:table-row;
+}
+.GUIElement.Menu[data-type="TABLE"] .menuitem span,
+.GUIElement.Menu[data-type="TABLE"] .menuheader span,
+.GUIElement.Menu[data-type="GRID"] .menuitem {
+    display:table-cell;
+    padding:5px;
+}
+/*~~~ css/structure/Layer.MapMaker.css ~~~*/
+.MapMaker {
+	display: flex;
+	flex-direction:row;
+}
+.MapMaker .Map {
+	flex-shrink:1;
+}
+.MapMaker .images {
+	width:200px;
+	height: 100%;
+	overflow-y:auto;
+}
+.MapMaker .images img {
+	width: 100px;
+}
+
+.imageLayer .panel {
+	top:50%;
+	left:50%;
+	transform:translatex(-50%) translatey(-50%);
+}
+/*~~~ css/structure/GUIElement.ControllerConfig.css ~~~*/
+.ControllerConfig [data-field="name"] {
+	width: 50%;
+	max-width: 200px;
+	margin: 10px 0 0 10px;
+}
+
+.ControllerConfig.Keyboard .axisButton {
+    display:none;
+}
+.ControllerConfig .button input,
+.ControllerConfig .analogStick input {
+    position:absolute;
+}
+.ControllerConfig .buttons{
+    padding:20px 0;
+}
+.ControllerConfig .button {
+    position:relative;
+    border:1px solid;
+    border-radius:1000px;
+    padding:8px;
+    margin:8px;
+}
+.ControllerConfig .button input {
+    top:25px;
+    left:0;
+}
+.ControllerConfig .analogSticks {
+    padding:50px 0;
+}
+.ControllerConfig .analogStick {
+    position:relative;
+    border:1px solid;
+    padding:20px;
+    margin:0 20px ;
+}
+.ControllerConfig label{
+    position: absolute;
+    font-size:10px;
+}
+.ControllerConfig label.axisButton {
+    top:-25px;
+    left:-35px;
+}
+.ControllerConfig input.axisButton {
+    left:-20px;
+    top:-17px;
+}
+.ControllerConfig .axisButton:not(:checked)+* > .neg{
+    display:none;
+}
+.ControllerConfig.Keyboard .analogStick .neg{
+    display:initial;
+}
+.ControllerConfig .axisButton:checked+* > label {
+    display:none;
+}
+.ControllerConfig  input.axis-x {
+    top:calc(50% - 12px);
+}
+.ControllerConfig  input.axis-y {
+    left:calc(50% - 12px);
+}
+.ControllerConfig  input.axis-y.pos {
+    top:-15px;
+}
+.ControllerConfig  input.axis-x.pos {
+    right:-15px;
+}
+.ControllerConfig  input.axis-y.neg {
+    bottom:-15px;
+}
+.ControllerConfig  input.axis-x.neg {
+    left:-15px;
+}
+.ControllerConfig .invert-axis-x {
+    right:-20px;
+    bottom:10px;
+}
+.ControllerConfig .invert-axis-x input {
+    bottom:14px;
+    right:-5px
+}
+.ControllerConfig .invert-axis-y {
+    left:-20px;
+    top:5px;
+}
+.ControllerConfig .invert-axis-y input {
+    top:-6px;
+    left:38px;
+}
+/*~~~ css/structure/Map.css ~~~*/
+.Map {
+	display:inline-block;
+	height: 100%;
+	width: 100%;
+    overflow: hidden;
+    position: relative;
+    z-index: 0;
+}
+.Map .stage {
+    position: absolute;
+}
+.Map .stage img {
+    position: absolute;
+}

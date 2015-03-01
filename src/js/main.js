@@ -10,5 +10,5 @@ window.addEventListener("DOMContentLoaded", function(){
 		imageBaseUrl:"resources/images/",
 		mapBaseUrl:"resources/maps/",
 	});
-	
+	board.focus();
 }, false);
