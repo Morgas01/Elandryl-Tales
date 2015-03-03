@@ -24,10 +24,6 @@ body {
 	flex-grow:1;
 	display:flex;
 }
-#main-content > div {
-	display:inline-block;
-	height:100%;
-}
 #left-side, #right-side {
 	flex-basis:25%;
 	flex-shrink:1;
@@ -35,4 +31,8 @@ body {
 #board {
 	flex-basis:50%;
 	flex-grow:1;
+	position:relative;
+}
+#board .Board {
+	position:absolute;
 }
