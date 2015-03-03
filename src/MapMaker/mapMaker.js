@@ -17,7 +17,11 @@
 	var kCon=new SC.kCon({
 		"buttons": {
 			" ": "0",
-			"Enter": "1"
+			"Enter": "1",
+			
+			//chrome
+			"32": "0",
+			"13": "1",
 		},
 		"buttonAxis": {
 			"w": "1",
@@ -27,7 +31,17 @@
 			"Up": "3",
 			"Right": "2",
 			"Down": "-3",
-			"Left": "-2"
+			"Left": "-2",
+			
+			//chrome keyCode
+			"37": "-2",
+			"38": "3",
+			"39": "2",
+			"40": "-3",
+			"65": "-0",
+			"68": "0",
+			"83": "-1",
+			"87": "1"
 		}
 	});
 	board.addController(kCon);

@@ -23,24 +23,17 @@
 .Board .hidden {
 	display:none;
 }
-/*~~~ css/structure/Map.css ~~~*/
-.Map {
-	display:inline-block;
-	height: 100%;
-	width: 100%;
-    overflow: hidden;
-    position: relative;
-    z-index: 0;
+/*~~~ css/structure/GUIElement.ControllerManager.css ~~~*/
+.GUIElement.ControllerManager .DeviceActions,
+.GUIElement.ControllerManager .MappingActions {
+	white-space: nowrap;
 }
-.Map .stage {
-    position: absolute;
+.GUIElement.ControllerManager .controllers,
+.GUIElement.ControllerManager .mappings {
+    vertical-align: top;
 }
-.Map .stage img {
-    position: absolute;
-}
-/*~~~ css/structure/GUIElement.TextBox.css ~~~*/
-.TextBox {
-	white-space: pre;
+.GUIElement.ControllerManager .Menu {
+    width: 100%;
 }
 /*~~~ css/structure/GUIElement.Menu.css ~~~*/
 .GUIElement.Menu[data-type="VERTICAL"] .menuitem {
@@ -60,18 +53,6 @@
 .GUIElement.Menu[data-type="GRID"] .menuitem {
     display:table-cell;
     padding:5px;
-}
-/*~~~ css/structure/GUIElement.ControllerManager.css ~~~*/
-.GUIElement.ControllerManager .DeviceActions,
-.GUIElement.ControllerManager .MappingActions {
-	white-space: nowrap;
-}
-.GUIElement.ControllerManager .controllers,
-.GUIElement.ControllerManager .mappings {
-    vertical-align: top;
-}
-.GUIElement.ControllerManager .Menu {
-    width: 100%;
 }
 /*~~~ css/structure/GUIElement.ControllerConfig.css ~~~*/
 .ControllerConfig [data-field="name"] {
@@ -164,4 +145,23 @@
 .ControllerConfig .invert-axis-y input {
     top:-6px;
     left:38px;
+}
+/*~~~ css/structure/Map.css ~~~*/
+.Map {
+	display:inline-block;
+	height: 100%;
+	width: 100%;
+    overflow: hidden;
+    position: relative;
+    z-index: 0;
+}
+.Map .stage {
+    position: absolute;
+}
+.Map .stage img {
+    position: absolute;
+}
+/*~~~ css/structure/GUIElement.TextBox.css ~~~*/
+.TextBox {
+	white-space: pre;
 }

@@ -19,6 +19,9 @@ body {
 	flex-grow:1;
     position: relative;
 }
+#bordContainer .Board {
+    position: absolute;
+}
 #bordContainer #hover-panel {
     font-size: 50px;
     position: absolute;
