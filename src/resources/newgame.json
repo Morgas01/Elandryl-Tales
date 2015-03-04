@@ -8,5 +8,10 @@
 	"map":"emptyMap",
 	"position":{"x":0,"y":0},
 	"quests":[],
-	"actions":[]
+	"actions":[
+		{
+			"type":"SHOW_DIALOG",
+			"dialogName":"d1"
+		}
+	]
 }
