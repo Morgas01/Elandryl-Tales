@@ -2,12 +2,15 @@
 	{
 		"name":"d1",
 		"dialogParts":[
-			"title":"???",
-			"parts":[
-				{
-					"text":"hello world!"
-				}
-			]
+			{
+				"bottom":"0",
+				"title":"???",
+				"parts":[
+					{
+						"text":"hello world!"
+					}
+				]
+			}
 		]
 	}
 ]
