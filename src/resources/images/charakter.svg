@@ -26,9 +26,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="11.313709"
-     inkscape:cx="36.393506"
-     inkscape:cy="150.3316"
+     inkscape:zoom="16"
+     inkscape:cx="47.474827"
+     inkscape:cy="142.69075"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="true"
@@ -64,26 +64,26 @@
        y="0"
        xlink:href="#path4400"
        id="use4402"
-       transform="matrix(-1,0,0,1,99.999989,0)"
+       transform="matrix(-1,0,0,1,99.99999,0)"
        width="100%"
        height="100%" />
     <ellipse
-       style="opacity:1;fill:#f8dfc9;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.1;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       style="opacity:1;fill:#f8e0ca;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.1;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        id="path4400"
-       cx="-209.40038"
-       cy="878.08539"
+       cx="-205.53667"
+       cy="879.12067"
        rx="3"
        ry="5"
        transform="matrix(0.96592583,-0.25881905,0.25881905,0.96592583,0,0)" />
-    <circle
+    <path
        style="opacity:1;fill:#f8dfc9;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.1;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 71,902.31213 c 0,6.90356 -2,10.05003 -4,12.05003 -2,2 -14.950001,8 -17,8 -2.049999,0 -14,-6 -16,-8 -2,-2 -4,-5.09644 -4,-12 0,-13.80712 8.429634,-25.05003 20,-25.05003 11.570366,0 21,11.19288 21,25 z"
        id="path4142"
-       cx="49.950001"
-       cy="902.31213"
-       r="25" />
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="szzzsss" />
     <g
        id="g4322"
-       transform="translate(4.9500008,24.950129)">
+       transform="translate(4.9500008,26.950129)">
       <ellipse
          ry="6"
          rx="5"
@@ -101,7 +101,7 @@
     </g>
     <g
        id="g4244"
-       transform="translate(4.9500008,24.950129)">
+       transform="translate(4.9500008,26.950129)">
       <ellipse
          ry="5"
          rx="4"
@@ -128,7 +128,7 @@
        y="0"
        xlink:href="#g4322"
        id="use4328"
-       transform="translate(20,-1.0192701e-8)"
+       transform="translate(20,0)"
        width="100%"
        height="100%" />
     <use
@@ -136,17 +136,18 @@
        y="0"
        xlink:href="#g4244"
        id="use4326"
-       transform="translate(20,-1.0192701e-8)"
+       transform="translate(20,0)"
        width="100%"
        height="100%" />
     <path
        style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.1;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 50.050001,907.31229 c 0.03736,0.22249 0.100156,0.94908 0.1,1.2 2.18e-4,0.30394 -0.146274,0.54593 -0.2,0.8 0.166736,-0.15421 0.600057,-0.46257 0.6,-0.8 1.4e-5,-0.31866 -0.347493,-1.03818 -0.5,-1.2 z"
+       d="m 50.050001,909.31229 c 0.03736,0.22249 0.100156,0.94908 0.1,1.2 2.18e-4,0.30394 -0.146274,0.54593 -0.2,0.8 0.166736,-0.15421 0.600057,-0.46257 0.6,-0.8 1.4e-5,-0.31866 -0.347493,-1.03818 -0.5,-1.2 z"
        id="path4332"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccc" />
     <g
-       id="g4458">
+       id="g4458"
+       transform="translate(0,2)">
       <path
          sodipodi:nodetypes="czc"
          inkscape:connector-curvature="0"
@@ -161,18 +162,19 @@
     </g>
     <path
        style="fill:#900900;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 61,873.36216 c -10,-10 -36,-2 -36,24.00001 0,4 0.666667,8 2,12 l 1,-13 3,10 1,-15 2,5 4,-6 0,4 6,-9 1,7 3,-8 -1,9 c 4,-5 8,-9 9,-15.00001 4,4.00001 7,12.00001 7,14.00001 l 1,-4 1,5 3,-2 -1,9 4,-4 -1,8 5,-7 0,8 c 1,-3 2,-6 2,-9 0,-20.00001 -7,-25.41155 -16,-23.00001"
+       d="m 61,873.36216 c -10,-10 -32,-2 -32,24.00001 0,4 0.666667,8 2,12 l 1,-13 3,10 1,-15 2,5 3,-6 1,4 4,-9 1,7 3,-8 -1,9 c 4,-5 6,-9 7,-15.00001 4,4.00001 3,12.00001 3,14.00001 l 2,-4 1,5 2,-2 1,9 2,-4 1,8 3,-7 0,8 c 1,-3 2,-6 2,-9 0,-20.00001 -3,-25.41155 -12,-23.00001"
        id="path4163"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccccccccccccccccccccccc" />
     <g
-       id="g4771">
+       id="g4771"
+       transform="translate(-4.95,-1.95)">
       <path
          sodipodi:nodetypes="ccc"
          inkscape:connector-curvature="0"
          id="path4750"
          d="m 69,918.36216 c 1,0 2,1 2,2 -1,0 -2,-1 -2,-2 z"
-         style="fill:#900900;fill-rule:evenodd;stroke:#000000;stroke-width:0.1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;fill-opacity:1" />
+         style="fill:#900900;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
       <use
          height="100%"
          width="100%"
