@@ -141,13 +141,12 @@
        height="100%" />
     <path
        style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.1;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 50.050001,909.31229 c 0.03736,0.22249 0.100156,0.94908 0.1,1.2 2.18e-4,0.30394 -0.146274,0.54593 -0.2,0.8 0.166736,-0.15421 0.600057,-0.46257 0.6,-0.8 1.4e-5,-0.31866 -0.347493,-1.03818 -0.5,-1.2 z"
+       d="m 50.050001,907.31229 c 0.03736,0.22249 0.100156,0.94908 0.1,1.2 2.18e-4,0.30394 -0.146274,0.54593 -0.2,0.8 0.166736,-0.15421 0.600057,-0.46257 0.6,-0.8 1.4e-5,-0.31866 -0.347493,-1.03818 -0.5,-1.2 z"
        id="path4332"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccc" />
     <g
-       id="g4458"
-       transform="translate(0,2)">
+       id="g4458">
       <path
          sodipodi:nodetypes="czc"
          inkscape:connector-curvature="0"
