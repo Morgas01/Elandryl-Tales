@@ -63,6 +63,8 @@
             "../resources/images/erde.svg",
             "../resources/images/gras.svg",
             "../resources/images/holz.svg",
+            "../resources/images/gras.svg",
+            "../resources/images/gras2.svg",
             "../resources/images/stein-hex.svg",
             "../resources/images/stein-welle.svg",
             "../resources/images/ziegel.svg"

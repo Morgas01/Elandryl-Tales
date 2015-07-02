@@ -1,0 +1,97 @@
+{
+	"images": [
+		{
+			"url": "holz.svg",
+			"position": {
+				"x": "0",
+				"y": "0"
+			},
+			"size": {
+				"x": "200",
+				"y": "600"
+			}
+		},
+		{
+			"url": "holz.svg",
+			"position": {
+				"x": "200",
+				"y": "0"
+			},
+			"size": {
+				"x": "200",
+				"y": "600"
+			}
+		},
+		{
+			"url": "holz.svg",
+			"position": {
+				"x": "400",
+				"y": "0"
+			},
+			"size": {
+				"x": "200",
+				"y": "600"
+			}
+		},
+		{
+			"url": "holz.svg",
+			"position": {
+				"x": "600",
+				"y": "0"
+			},
+			"size": {
+				"x": "200",
+				"y": "600"
+			}
+		},
+		{
+			"name":"door right",
+			"url": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+			"position": {
+				"x": "790",
+				"y": "200"
+			},
+			"size": {
+				"x": "100",
+				"y": "100"
+			},
+			"trigger": {
+				"type": "step",
+				"value": [
+					{
+						"type": "CHANGE_MAP",
+						"mapName": "homeForge",
+						"position": {"x": 15,"y": 200}
+					}
+				]
+			}
+		},
+		{
+			"name":"door down",
+			"url": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+			"position": {
+				"x": "280",
+				"y": "590"
+			},
+			"size": {
+				"x": "100",
+				"y": "100"
+			},
+			"trigger": {
+				"type": "step",
+				"value": [
+					{
+						"type": "CHANGE_MAP",
+						"mapName": "homeVille",
+						"position": {"x": 0,"y": 0}
+					}
+				]
+			}
+		},
+	],
+	"size": {
+		"x": 800,
+		"y": 600
+	},
+	"cursors": []
+}
