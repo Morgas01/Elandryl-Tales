@@ -5,7 +5,7 @@
 		"size":50,
 		"offset":25
 	},
-	"map":"emptyMap",
+	"map":"home",
 	"position":{"x":0,"y":0},
 	"quests":[],
 	"actions":[

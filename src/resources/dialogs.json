@@ -1,16 +1,50 @@
-[
-	{
-		"name":"d1",
+{
+	"d1":{
 		"dialogParts":[
 			{
 				"bottom":"0",
-				"title":"???",
+				"title":"Iiv",
 				"parts":[
 					{
-						"text":"hello world!"
+						"text":"Ich bin wieder da"
+					}
+				]
+			},
+			{
+				"bottom":"0",
+				"title":"Mutter",
+				"parts":[
+					{
+						"text":"gut das du kommst.\nDas Essen ist gleich fertig."
+					}
+				]
+			},
+			{
+				"bottom":"0",
+				"title":"Mutter",
+				"parts":[
+					{
+						"text":"kannst du eben zum "
+					},
+					{
+						"text":"Laden",
+						"styleClass":"place"
+					},
+					{
+						"text":" gehen und Salz kaufen?"
+					}
+				]
+			},
+			{
+				"bottom":"0",
+				"title":"Iiv",
+				"parts":[
+					{
+						"text":"OK mach ich."
 					}
 				]
 			}
+
 		]
 	}
-]
+}
