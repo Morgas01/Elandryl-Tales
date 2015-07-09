@@ -82,7 +82,7 @@
 		DEBUG:3
 	};
 	µ.debug.verbose=µ.debug.LEVEL.WARNING;
-	µ.getDebug=function(debug){µ.debug.verbose=debug};
+	µ.getDebug=function(){return µ.debug.verbose};
 	µ.setDebug=function(debug){µ.debug.verbose=debug};
 	µ.debug.out=function(msg,verbose)
 	{
@@ -102,6 +102,10 @@
 				console.log(msg);
 		}
 	};
+	µ.debug.error=function(msg){µ.debug(msg,µ.debug.LEVEL.ERROR)};
+	µ.debug.warning=function(msg){µ.debug(msg,µ.debug.LEVEL.WARNING)};
+	µ.debug.info=function(msg){µ.debug(msg,µ.debug.LEVEL.INFO)};
+	µ.debug.debug=function(msg){µ.debug(msg,µ.debug.LEVEL.DEBUG)};
 	
 	/** shortcut
 	 * creates an object that will evaluate its values defined in {map} on its first call.
@@ -166,8 +170,7 @@
 	 *  {
 	 *  	//call constructor of superclass
 	 *  	mySuperClass.prototype.init.call(this,arg1,arg2...);
-	 *  	//or this.superInit(mySuperClass,arg1,arg2...);
-	 *  	//or this.superInitApply(mySuperClass,arguments);
+	 *  	//or this.mega();
 	 *  
 	 *  	//your constructor
 	 *  }
@@ -201,11 +204,12 @@
 			prot=superClass;
 			superClass=BASE;
 		}
-		if(superClass)
+		if(superClass) //only undefined when creating BaseClass
 		{
 			newClass.prototype=Object.create(superClass.prototype);
 			newClass.prototype.constructor=newClass;
 		}
+		
 		for(var i in prot)
 		{
 			newClass.prototype[i]=prot[i];
@@ -216,17 +220,69 @@
 	
 	/** Base Class
 	 *	allows to check of being a class ( foo instanceof µ.BaseClass )
+	 *	provides mega and basic destroy method
 	 */
 	var BASE=µ.BaseClass=CLASS(
 	{
 		init:function baseInit(){},
-		superInit:function superInit(_class/*,arg1,arg2,...,argN*/)
+		mega:function mega()
 		{
-			_class.prototype.init.apply(this,[].slice.call(arguments,1));
+			var isFirstCall=false,rtn;
+			if(this.__magaKey===undefined)
+			{
+				isFirstCall=true;
+				searchPrototype:for(var prot=Object.getPrototypeOf(this);prot!==null;prot=Object.getPrototypeOf(prot))
+				{
+					for(var i=0,names=Object.getOwnPropertyNames(prot);i<names.length;i++)
+					{
+						if(this.mega.caller===prot[names[i]])
+						{
+							Object.defineProperties(this,{
+								__megaKey:{configurable:true,writable:true,value:names[i]},
+								__megaProt:{configurable:true,writable:true,value:prot}
+							});
+							break searchPrototype;
+						}
+					}
+				}
+				if(this.__megaKey===undefined)
+				{
+					µ.debug("caller was not a member",µ.debug.LEVEL.ERROR);
+					return;
+				}
+			}
+			while((this.__megaProt=Object.getPrototypeOf(this.__megaProt))!==null&&!this.__megaProt.hasOwnProperty(this.__megaKey));
+			var error=null;
+			try
+			{
+				if(this.__megaProt===null)
+				{
+					µ.debug("no mega found for "+this.__megaKey,µ.debug.LEVEL.ERROR);
+				}
+				else
+				{
+					rtn=this.__megaProt[this.__megaKey].apply(this,arguments);
+				}
+			}
+			catch (e){error=e;}
+			if(isFirstCall)
+			{
+				delete this.__megaKey;
+				delete this.__megaProt;
+				if(error)µ.debug(error,µ.debug.LEVEL.ERROR);
+			}
+			if(error) throw error;
+			return rtn;
 		},
-		superInitApply:function superInitApply(_class,args)
+		destroy:function()
 		{
-			this.superInit.apply(this,[_class].concat([].slice.call(args)));
+			if(this.patches)for(var p in this.patches)this.patches[p].destroy();
+			for(var i in this)
+			{
+				if(this[i]&&typeof this[i].destroy==="function")this[i].destroy();
+				delete this[i];
+			}
+			this.destroy=undefined;//overwrite prototype method
 		}
 	});
 	SMOD("Base",BASE);
@@ -259,7 +315,7 @@
 			this.playerDisabled={};
 			
 
-			SC.rs.all(["focus"],this);
+			SC.rs.all(this,["focus"]);
 			
 			this.domElement=document.createElement("div");
 			this.domElement.classList.add("Board");
@@ -317,15 +373,11 @@
 			}
 			return false;
 		},
-		setControllerDisabled:function()
-		{
-			//TODO
-		},
 		_ctrlCallback:function(event)
 		{
 			if(!this.disabled&&this.layers.length>0)
 			{
-				var args=Array.prototype.slice.call(arguments,0);
+				var args=Array.prototype.slice.call(arguments);
 				event.player=null;
 				for(var i=this.controllers.length-1;i>=0;i--)
 				{
@@ -372,19 +424,22 @@
 //Morgas/src/Morgas.Listeners.js
 (function(µ,SMOD,GMOD){
 	
+	var BASECLASS=GMOD("Base");
+	
 	/**Listener Class
 	 * Holds Arrays of functions to fire or fire once when "fire" is called
 	 * When fired and a listening function returns false firing is aborted
 	 * When added a type can be passed:
 	 * 		"first" function gets prepended
-	 * 		"last" function gets appended (default)
+	 * 		"normal" function gets appended (default)
+	 * 		"last" function gets appended
 	 * 		"once" function is removed after call 
-	 * 			(will only be called when "normal" listeners haven't abort firing.
+	 * 			(will only be called when previous listeners haven't abort firing.
 	 * 			cant abort other "once" listening functions)
 	 *  
 	 * Can be disabled
 	*/
-	var LISTENER=µ.Listener=µ.Class(
+	var LISTENER=µ.Listener=µ.Class(BASECLASS,
 	{
 		init:function ListenerInit()
 		{
@@ -420,6 +475,7 @@
 					case "first":
 						entry.first.add(fn);
 						break;
+					case "normal":
                     default:
                         entry.normal.add(fn);
                         break;
@@ -548,7 +604,7 @@
                         value.call(scope,event);
                     }
                     entry.once.clear();
-                    if(entry.first.size===0&&entry.normal.size===0&&entry.last.size===0)
+                    if(entry.first.size===0&&entry.normal.size===0&&entry.last.size===0 &&this.listeners)//if destroyed while firing
                     {
                         this.listeners["delete"](scope);
                     }
@@ -558,7 +614,12 @@
 			return null;
 		},
 		setDisabled:function setDisabled(bool){this.disabled=bool===true;},
-		isDisabled:function isDisabled(){return this.disabled;}
+		isDisabled:function isDisabled(){return this.disabled;},
+		destroy:function()
+		{
+			this.removeListeners();
+			this.mega();
+		}
 	});
 	SMOD("Listener",LISTENER);
 	
@@ -569,46 +630,48 @@
 	 */
 	var STATELISTENER=LISTENER.StateListener=µ.Class(LISTENER,
 	{
-		init:function StateListenerInit(param)
+		init:function StateListenerInit()
 		{
-			this.superInit(LISTENER);
-			this.state=param.state===true;
+			this.mega();
+			this.state=null;
 			this.stateDisabled=false;
-			this.lastEvent=null;
+			this.disabled=true
 		},
 		setDisabled:function setDisabled(bool){this.stateDisabled=bool===true;},
 		isDisabled:function isDisabled(){return this.stateDisabled;},
 		setState:function setState(source,event)
 		{
-            event=event||{};
-            event.source=source;
-
-			this.state=true;
-			this.lastEvent=event;
+			this.state=event||{};
+			this.state.source=source;
 
 			var rtn=false;
 			if(!this.stateDisabled)
 			{
 				this.disabled=false;
-				rtn=this.fire.apply(this,this.lastEvent);
+				rtn=this.fire(this,this.state);
 				this.disabled=true
 			}
 			return rtn;
 		},
-		resetState:function resetState(){this.state=false;},
+		resetState:function resetState(){this.state=null;},
 		getState:function getState(){return this.state},
 		addListener:function addListener(fn,scope,type)
 		{
 			var doFire=this.state&&!this.stateDisabled;
 			if(doFire)
 			{
-				fn.apply(scope,this.lastEvent);
+				fn.apply(scope,this.state);
 			}
 			if(!(doFire&&typeof type=="string"&&type.toLowerCase()=="once"))
 			{
-				return LISTENER.prototype.addListener.apply(this,arguments);
+				return this.mega.apply(this,arguments);
 			}
 			return null;
+		},
+		destroy:function()
+		{
+			this.resetState();
+			this.mega();
 		}
 	});
 	SMOD("StateListener",STATELISTENER);
@@ -620,14 +683,14 @@
 	 * 	when adding a listening function the type
 	 * 	can be passed followed after the name separated by ":" 
 	 */
-	var LISTENERS=µ.Listeners=µ.Class(
+	var LISTENERS=µ.Listeners=µ.Class(BASECLASS,
 	{
 		rNames:/[\s|,]+/,
 		rNameopt:":",
 		init:function ListenersInit(dynamic)
 		{
 			this.listeners={};
-			this.createListener(".created");
+			this.createListener(".created destroy");
 			this.dynamicListeners=dynamic===true;
 		},
 		createListener:function createListener(types)
@@ -699,31 +762,35 @@
 			}
 			return undefined
 		},
-		setDisabled:function setDisabled(names,bool)
+		disableListener:function disableListener(names,bool)
 		{
-			var nameArr=names.split(this.rNames);
-			for(var i=0;i<nameArr.length;i++)
+			if(names.toLowerCase()=="all")
 			{
-				var lstnr=this.listeners[nameArr[i]];
-				if(lstnr!=null)
-					lstnr.setDisabled(bool);
+				for(var i in this.listeners)
+				{
+					this.listeners[i].setDisabled(bool);
+				}
+			}
+			else
+			{
+				var nameArr=names.split(this.rNames);
+				for(var i=0;i<nameArr.length;i++)
+				{
+					var lstnr=this.listeners[nameArr[i]];
+					if(lstnr!=null)
+						lstnr.setDisabled(bool);
+				}
 			}
 		},
-		isDisabled:function isDisabled(names)
+		isListenerDisabled:function isDisabled(name)
 		{
-			var rtn=true;
-			var nameArr=names.split(this.rNames);
-			for(var i=0;rtn&&i<nameArr.length;i++)
-			{
-				var lstnr=this.listeners[nameArr[i]];
-				if(lstnr!=null)
-					rtn&=lstnr.isDisabled();
-			}
-			return rtn;
+			var lstnr=this.listeners[name];
+			if(lstnr===undefined) return undefined;
+			else return lstnr.isDisabled();
 		},
-		setState:function setState(name,event)
+		setState:function setState(name,state)
 		{
-			event=event||{};
+			var event={value:state};
 			event.type=name;
 			var lstnr=this.listeners[name];
 			if (lstnr&&lstnr instanceof STATELISTENER)
@@ -734,29 +801,40 @@
 		},
 		resetState:function resetState(names)
 		{
-			var nameArr=names.split(this.rNames);
-			for(var i=0;i<nameArr.length;i++)
+			if(names.toLowerCase()=="all")
 			{
-				var lstnr=this.listeners[nameArr[i]];
-				if(lstnr!=null&&lstnr instanceof STATELISTENER)
-					lstnr.resetState();
+				for(var i in this.listeners)
+				{
+					if(this.listeners[i] instanceof STATELISTENER)
+					this.listeners[i].resetState();
+				}
+			}
+			else
+			{
+				var nameArr=names.split(this.rNames);
+				for(var i=0;i<nameArr.length;i++)
+				{
+					var lstnr=this.listeners[nameArr[i]];
+					if(lstnr!=null&&lstnr instanceof STATELISTENER)
+						lstnr.resetState();
+				}
 			}
 		},
-		getState:function getState(names)
+		getState:function getState(name)
 		{
-			var rtn=true;
-			var nameArr=names.split(this.rNames);
-			for(var i=0;rtn&&i<nameArr.length;i++)
-			{
-				var lstnr=this.listeners[nameArr[i]];
-				if(lstnr!=null&&lstnr instanceof STATELISTENER)
-					rtn&=lstnr.getState();
-			}
-			return rtn
+			var lstnr=this.listeners[name];
+			if(lstnr!=null&&lstnr instanceof STATELISTENER) return lstnr.getState();
+			return undefined;
 		},
 		destroy:function()
 		{
-			this.removeListener("all");
+			this.fire("destroy");
+			for(var i in this.listeners)
+			{
+				this.listeners[i].destroy();
+				delete this.listeners[i];
+			}
+			this.mega();
 		}
 	});
 	SMOD("Listeners",LISTENERS);
@@ -764,7 +842,7 @@
 	{
 		for(var i in LISTENERS.prototype)
 		{
-			if (i!="init"&&i!="constructor"&&i!="superInit"&&i!="superInitApply")
+			if (!(i in instance))
 				instance[i]=LISTENERS.prototype[i];
 		}
 		LISTENERS.prototype.init.call(instance);
@@ -787,7 +865,7 @@
 	var LAYER=TALE.Layer=µ.Class(LST,{
 		init:function(param)
 		{
-			this.superInit(LST);
+			this.mega();
 			param=param||{};
 			this.nodePatch=new SC.node(this,{
 				parent:"board",
@@ -862,7 +940,7 @@
 			{
 				c[i].destroy();
 			}
-			LST.prototype.destroy.call(this);
+			this.mega();
 		}
 	});
 	LAYER.Modes={
@@ -893,7 +971,7 @@
 		init:function(param)
 		{
 			param=param||{};
-			this.superInit(LST);
+			this.mega();
 			this.nodePatch=new SC.node(this,{
 		        parent:"parent",
 		        children:"children",
@@ -987,7 +1065,7 @@
 			{
 				c[i].destroy();
 			}
-			LST.prototype.destroy.call(this);
+			this.mega();
 		}
 	});
 	
@@ -1277,15 +1355,16 @@
 	var CTRL=TALE.Controller=µ.Class(LST,{
 		init:function(mapping,mappingName)
 		{
-			this.superInit(LST);
+			this.mega();
 			
-			this.disabled=false;
 			this.analogSticks={};
 			this.buttons={};
 			this.mapping=null;
 			
 			this.setMapping(mapping,mappingName);
-			this.createListener("changed analogStickChanged buttonChanged");
+			this.createListener("changed analogStickChanged buttonChanged .disabled .connected");
+			this.addListener(".disabled",this,"reset");
+			//TODO this.addListener(".connected",this,"reset");
 		},
 		getMapping:function()
 		{
@@ -1410,17 +1489,39 @@
 			this.setButton(buttons);
 			this.setAxis(axes);
 		},
+		reset:function()
+		{
+			var changed=false;
+			for(var b in this.buttons)
+			{
+				var oldValue=this.buttons[b];
+				if(oldValue!==0)
+				{
+					this.buttons[b]=0;
+					this.fire("buttonChanged",{index:1*b,value:0,oldValue:old});
+					changed=true;
+				}
+			}
+			for(var a in this.analogSticks)
+			{
+				var aStick=this.analogSticks[a];
+				aStick.set(0,0);
+				if(aStick.hasChanged())
+				{
+					this.fire("analogStickChanged",{index:1*a,analogStick:aStick});
+					changed=true;
+				}
+			}
+		},
 		setDisabled:function(disabled)
 		{
-			this.disabled=disabled===true;
-			for(var i in this.listeners)
-			{
-				this.listeners[i].setDisabled(this.disabled);
-			}
+			if(disabled) this.setState(".disabled");
+			else this.resetState(".disabled");
 		},
 		destroy:function()
 		{
 			//TODO;
+			this.mega();
 		},
 		toString:function()
 		{
@@ -1436,7 +1537,7 @@
 		init:function(x,y)
 		{
 			this.old={x:0,y:0};
-			this.superInit(POINT,x,y);
+			this.mega(x,y);
 		},
 		clone:function(cloning)
 		{
@@ -1444,7 +1545,7 @@
 			{
 				cloning=new CTRL.AnalogStick();
 			}
-			POINT.prototype.clone.call(this,cloning);
+			this.mega(cloning);
 			cloning.old.x=this.old.x;
 			cloning.old.y=this.old.y;
 			return cloning;
@@ -1484,7 +1585,7 @@
 		set:function(numberOrPoint,y)
 		{
 			this.pushOld();
-			POINT.prototype.set.call(this,numberOrPoint,y);
+			this.mega(numberOrPoint,y);
 		}
 	});
 	
@@ -1504,8 +1605,8 @@
 	var GP=CTRL.Gamepad=µ.Class(CTRL,{
 		init:function(gamepad,map,precision)
 		{
-			this.superInit(CTRL,map);
-			SC.rs.all(["update"],this);
+			this.mega(map);
+			SC.rs.all(this,["update"]);
 			
 			this.gamepad=gamepad;
 			this.gamepadIndex=gamepad.index;
@@ -1531,8 +1632,8 @@
 		},
 		setDisabled:function(disabled)
 		{
-			CTRL.prototype.setDisabled.call(this,disabled);
-			if(this.disabled)
+			this.mega(disabled);
+			if(disabled)
 			{
 				cancelAnimationFrame(this.pollKey);
 			}
@@ -1556,16 +1657,16 @@
 	CTRL.Keyboard=µ.Class(CTRL,{
 		init:function(mapping,mappingName,domElement)
 		{
-			this.superInit(CTRL,mapping!==undefined ? mapping : CTRL.Keyboard.stdMapping,mappingName);
+			this.mega(mapping!==undefined ? mapping : CTRL.Keyboard.stdMapping,mappingName);
 			
-			SC.rescope.all(["onKeyDown","onKeyUp"],this);
+			SC.rescope.all(this,["onKeyDown","onKeyUp"]);
 			
 			this.domElement=null;
 			this.setDomElement(domElement||window)
 		},
 		setMapping:function(mapping)
 		{
-			CTRL.prototype.setMapping.call(this, mapping);
+			this.mega(mapping);
 			if(this.mapping)
 			{
 				this.mapping.setValueOf("type","Keyboard");
@@ -1598,13 +1699,13 @@
 		{
 			if(!this.disabled&&this.mapping)
 			{
-				if(this.mapping.hasButtonMapping(event.code||event.key||event.keyCode)||this.mapping.hasButtonAxisMapping(event.code||event.key||event.keyCode))
+				if(this.mapping.hasButtonMapping(event.code||event.keyCode)||this.mapping.hasButtonAxisMapping(event.code||event.keyCode))
 				{
 					event.preventDefault();
 					event.stopPropagation();
 					
 					var map={};
-					map[event.code||event.key||event.keyCode]=value;
+					map[event.code||event.keyCode]=value;
 					this.setButton(map);
 				}
 			}
@@ -1612,19 +1713,19 @@
 		destroy:function()
 		{
 			this.setDomElement();
-			CTRL.prototype.destroy.call(this);
+			this.mega();
 		}
 	});
 	CTRL.Keyboard.stdMapping={
 		"buttons": {
-			"1": "2",
-			"2": "3",
-			"3": "4",
-			"4": "5",
-			"5": "6",
-			"6": "7",
-			" ": "0",
-			"Shift": "1",
+			"Space": "0",
+			"ShiftLeft": "1",
+			"Numpad1": "2",
+			"Numpad2": "3",
+			"Numpad3": "4",
+			"Numpad4": "5",
+			"Numpad5": "6",
+			"Numpad6": "7",
 			"Pause": "8",
 			"Enter": "9",
 			
@@ -1641,15 +1742,15 @@
 			"102": "7",
 		},
 		"buttonAxis": {
-			"w": "1",
-			"d": "0",
-			"s": "-1",
-			"a": "-0",
-			"Up": "3",
-			"Right": "2",
-			"Down": "-3",
-			"Left": "-2",
-			
+			"KeyW": "1",
+			"KeyD": "0",
+			"KeyS": "-1",
+			"KeyA": "-0",
+			"ArrowUp": "3",
+			"ArrowRight": "2",
+			"ArrowDown": "-3",
+			"ArrowLeft": "-2",
+
 			//chrome keyCode
 			"37": "-2",
 			"38": "3",
@@ -1709,9 +1810,9 @@
 			param=param||{};
 			param.styleClass=param.styleClass||"overlay";
 			
-			this.superInit(GUI,param);
+			this.mega(param);
 			this.addStyleClass("ControllerManager");
-			SC.rs.all(["_Click","_playerChanged","_mappingsLoaded"],this);
+			SC.rs.all(this,["_Click","_playerChanged","_mappingsLoaded"]);
 			this.domElement.addEventListener("click",this._Click);
 
 			this.buttons=param.buttons!==undefined ? param.buttons : 10;
@@ -1928,7 +2029,7 @@
 		},
 		destroy:function()
 		{
-			GUI.prototype.destroy.call(this);
+			this.mega();
 			window.removeEventListener("gamepadconnected",this._gamepadListener);
 		}
 	});
@@ -1968,11 +2069,11 @@
 	var MENU=GUI.Menu=µ.Class(GUI,{
 		init:function(param)
 		{
-			SC.rescope.all(["_stepActive","onClick"],this);
+			SC.rescope.all(this,["_stepActive","onClick"]);
 			
 			param=param||{};
 			
-			this.superInit(GUI,param);
+			this.mega(param);
 			this.menu=new SC.MENU(param);
 			this.addStyleClass("Menu");
 			
@@ -2009,7 +2110,7 @@
 					this.stepID=null;
 				}
 				this.stepDirection=direction;
-				var step=this._stepActive();
+				this._stepActive();
 			}
 		},
 		_stepActive:function()
@@ -2026,10 +2127,11 @@
 					if(this.stepDirection.y===1)
 					{
 						step=-gridLayout.columns;
-						if(this.menu.active+step<0)
+						var lastRowItems=this.menu.items.length%gridLayout.columns;
+						if(this.menu.active<=gridLayout.columns&&lastRowItems!==0)
 						{
-							var r=this.menu.items.length%gridLayout.columns;
-							step=(r===0||r>this.menu.active) ? -r : step-r;
+						
+							step=(lastRowItems>this.menu.active ? -lastRowItems : step-lastRowItems);
 						}
 					}
 					else if (this.stepDirection.y===-1)
@@ -2392,6 +2494,12 @@
             var p=new SC.POINT(numberOrPoint,y);
             return (this.position.x <= p.x && this.position.x+this.size.x > p.x &&
                     this.position.y <= p.y && this.position.y+this.size.y > p.y);
+        },
+        copy:function(rect)
+        {
+        	this.position.set(rect.position);
+        	this.size.set(rect.size);
+        	return this;
         }
 	});
 	SMOD("Math.Rect",RECT);
@@ -2403,7 +2511,7 @@
 
 	var SC=µ.getModule("shortcut")({
 		det:"Detached",
-		rj:"Request.json",
+		rj:"request.json",
 		debug:"debug",
 		idb:"IDBConn",
 		
@@ -2418,14 +2526,14 @@
 	
 	var requestCallbacks={
 		quests:{
-			loaded:function quests_loaded(quests,self)
+			loaded:function quests_loaded(quests)
             {
-            	for(var i=0;i<quests.length;i++)
+            	for(var i in quests)
             	{
             		var quest=new RPGPlayer.Quest(quests[i]);
-            		self.quests.set(quest.name,quest);
+            		this.quests.set(i,quest);
             	}
-            	return self;
+            	return this;
             },
 			error:function quest_load_error(error)
             {
@@ -2434,13 +2542,13 @@
             }
 		},
 		dialogs:{
-			loaded:function dialogs_loaded(dialogs,self)
+			loaded:function dialogs_loaded(dialogs)
             {
-            	for(var i=0;i<dialogs.length;i++)
+            	for(var i in dialogs)
             	{
-            		self.dialogs.set(dialogs[i].name,dialogs[i]);
+            		this.dialogs.set(i,dialogs[i]);
             	}
-            	return self;
+            	return this;
             },
 			error:function dialogs_load_error(error)
             {
@@ -2454,7 +2562,7 @@
         init:function(param)
         {
             param=param||{};
-            this.superInit(Layer,param);
+            this.mega(param);
 			this.domElement.classList.add("RPGPlayer");
 			
 			if(!param.board)
@@ -2564,24 +2672,22 @@
 		loadSave:function(save)
 		{
 			this.setCursor(save.getCursor());
+			
 			var activeQuests=this.gameSave.getQuests();
 			activeQuests.length=0;
-			this.questsReady.complete(function (self)
-            {
-				var saveQuests=save.getQuests();
-            	for(var i=0;i<saveQuests.length;i++)
-            	{
-            		if(self.quests.has(saveQuests[i]))
-            		{
-            			if(activeQuests.indexOf(saveQuests[i])===-1)activeQuests.push(saveQuests[i]);
-            		}
-            		else
-            		{
-            			SC.debug("quest "+saveQuests[i]+" not found",SC.debug.LEVE.ERROR);
-            		}
-            	}
-            	return null;
-            });
+			
+			var saveQuests=save.getQuests();
+        	for(var i=0;i<saveQuests.length;i++)
+        	{
+        		if(this.quests.has(saveQuests[i]))
+        		{
+        			if(activeQuests.indexOf(saveQuests[i])===-1)activeQuests.push(saveQuests[i]);
+        		}
+        		else
+        		{
+        			SC.debug("quest "+saveQuests[i]+" not found",SC.debug.LEVE.ERROR);
+        		}
+        	}
             this._changeMap(save.getMap(), save.getPosition());
             if(save.getActions())
             {
@@ -2612,25 +2718,25 @@
 		_changeMap:function(name,position)
 		{
 			this.map.setPaused(true);
-			return SC.rj(this.mapBaseUrl+name+".json",this).then(function changeMap_loaded(json,_self)
+			return SC.rj(this.mapBaseUrl+name+".json",this).then(function changeMap_loaded(json)
 			{
 				var todo=json.cursors.concat(json.images);
 				while(todo.length>0)
 				{
 					var image=todo.shift();
-					image.url=_self.imageBaseUrl+image.url;
+					image.url=this.imageBaseUrl+image.url;
 				}
 				json.position=position;
-				var animation=_self.map.movingCursors.get(_self.gameSave.getCursor());
-				_self.map.fromJSON(json);
-				_self.gameSave.getCursor().setPosition(position);
-				_self.map.add(_self.gameSave.getCursor());
+				var animation=this.map.movingCursors.get(this.gameSave.getCursor());
+				this.map.fromJSON(json);
+				this.gameSave.getCursor().setPosition(position);
+				this.map.add(this.gameSave.getCursor());
 				if(animation)
 				{
-					_self.map.movingCursors.set(_self.gameSave.getCursor(),animation);
+					this.map.movingCursors.set(this.gameSave.getCursor(),animation);
 				}
-				_self.map.setPaused(false);
-				_self.gameSave.setMap(name);
+				this.map.setPaused(false);
+				this.gameSave.setMap(name);
             	return name;
 			},
 			function changeMap_Error(error)
@@ -2675,6 +2781,10 @@
 			for(var i=0;i<actions.length;i++)
 			{
 				var a=actions[i];
+				if(a.condition&&!this.resolveContidion(a.condition))
+				{
+					continue;
+				}
 				var activeQuests=this.gameSave.getQuests();
 				var questIndex=null;
 				var quest=null;
@@ -2719,6 +2829,52 @@
 						break;
 				}
 			}
+			return null;
+		},
+		resolveContidion:function(conditionString)
+		{
+			var rtn=false;
+			var conditions=conditionString.split("||");
+			for(var c=0;c<conditions.length&&!rtn;c++)
+			{
+				var aspectResult=true;
+				var aspects=conditions[c].split("&");
+				for(var a=0;a<aspects.length&&aspectResult;a++)
+				{
+					var terms=aspects[a].match(/(!?\w+)\s*:\s*([\w\s]*\w)/);
+					if(terms)
+					{
+						var negative=false;
+						if(terms[1][0]==="!")
+						{
+							negative=true;
+							terms[1]=terms[1].slice(1);
+						}
+						switch(terms[1])
+						{
+							case "quest":
+								var hasQuest=this.gameSave.getQuests().indexOf(terms[2])!==-1;
+								aspectResult=hasQuest&&!negative||!hasQuest&&negative;
+								break;
+							case "item":
+								break;
+							case "quest_item":
+								break;
+							default:
+								SC.debug.error("unknown term: "+aspects[a]);
+								aspectResult=false;
+								break;
+						}
+					}
+					else
+					{
+						SC.debug.error("invalid term: "+aspects[a]);
+						return false;
+					}
+				}
+				rtn=aspectResult;
+			}
+			return rtn;
 		}
     });
 	RPGPlayer.saveConverter=function(save,index)
@@ -2742,9 +2898,13 @@
 		{
 			param=param||{};
 			
-			this.name=param.name||"NO NAME!";
 			this.description=param.description||"NO DESCRIPTION!";
+			this.tasks=param.tasks||null;
 			this.resolve=param.resolve||[];
+		},
+		tasksCompleted:function(tasks)
+		{//TODO
+			return true;
 		},
 		clone:function(cloning)
 		{
@@ -2778,12 +2938,12 @@
 			return fn.apply(scope,arguments);
 		}
 	};
-	uFn.rescope.all=function(keys,scope)
-	{	
+	uFn.rescope.all=function(scope,keys)
+	{
 		keys=keys||Object.keys(scope);
 		for(var i=0;i<keys.length;i++)
 		{
-			scope[keys[i]]=uFn.rescope(scope[keys[i]],scope);
+			if(typeof scope[keys[i]]==="function")scope[keys[i]]=uFn.rescope(scope[keys[i]],scope);
 		}
 	};
 	SMOD("rescope",uFn.rescope);
@@ -2808,7 +2968,7 @@
 	 * 		patchID:"myPatchID",
 	 * 		patch:function(param,noListeners)
 	 * 		{
-	 * 			this.superPatch(µ.patch);//call super.patch // in case of µ.Patch its not necessary 
+	 * 			this.mega();// in case of µ.Patch its not necessary 
 	 * 			//your constructor after instance is created
 	 * 		}
 	 * }
@@ -2824,18 +2984,17 @@
 	 * 		init:function(instance,param)
 	 * 		{
 	 * 			//call constructor of superclass
-	 * 			this.superInit(mySuperPatch,instance,param);
-	 * 			//or this.superInitApply(mySuperPatch,arguments);
+	 * 			this.mega(instance,param);
 	 * 
 	 * 			if(this.instance!=null)
 	 * 			{
 	 * 				//your constructor
-	 * 				//post patch:  this.instance.addListener("created",function(param,noListeners){}) 
+	 * 				//post patch:  this.instance.addListener(".created",function(param,noListeners){}) 
 	 * 			}
 	 * 		},
 	 * 		patch:function(param,noListeners)
 	 * 		{
-	 * 			this.superPatch(mySuperPatch,param,noListeners);
+	 * 			this.mega(param,noListeners);// in case of µ.Patch its not necessary 
 	 * 			//post constructor
 	 * 		}
 	 * }  
@@ -2888,13 +3047,11 @@
 			}
 		},
 		patch:function patch(param,noListeners){},
-		superPatch:function superPatch(_class/*,arg1,arg2,...,argN*/)
+		destroy:function()
 		{
-			_class.prototype.patch.apply(this,[].slice.call(arguments,1));
-		},
-		superPatchApply:function superPatchApply(_class,args)
-		{
-			this.superPatch.apply(this,[_class].concat([].slice.call(args)));
+			if(this.instance.patches[this.patchID]==this) delete this.instance.patches[this.patchID]
+			delete this.instance;
+			this.mega();
 		}
 	});
 	SMOD("Patch",PATCH);
@@ -3611,7 +3768,7 @@
 		{
 			objectType:type,
 			init:function(){
-				this.superInit(DBFRIEND,type,fieldname1,null,fieldname2,null);
+				this.mega(type,fieldname1,null,fieldname2,null);
 			}
 		});
 	};
@@ -3732,7 +3889,7 @@
 		init:function(param)
 		{
 			param=param||{};
-			this.superInit(DBObj,param);
+			this.mega(param);
 			
 			this.addField("name",SC.DBField.TYPES.STRING,param.name||"");
 			this.addField("type",SC.DBField.TYPES.STRING,param.type||"");
@@ -4272,8 +4429,8 @@
 		init:function(param)
 		{
 			param=param||{};
-			this.superInit(GUI,param);
-			SC.rs.all(["onInputChange","onClick"],this);
+			this.mega(param);
+			SC.rs.all(this,["onInputChange","onClick"]);
 			this.createListener("submit");
 			
 			this.addStyleClass("ControllerConfig");
@@ -4392,8 +4549,8 @@
 				event.stopPropagation();
 				
 				var input=event.target;
-				input.value=event.code||event.key||event.keyCode;
-				input.title=getTitle(event.code||event.key||event.keyCode);
+				input.value=event.code||event.keyCode;
+				input.title=getTitle(event.code||event.keyCode);
 			}
 		},
 		onClick:function(event)
@@ -4496,7 +4653,7 @@
 		destroy:function()
 		{
 			this.setController(null);
-			GUI.prototype.destroy.call(this);
+			this.mega();
 		}
 	});
 	SMOD("GUI.ControllerConfig",CONF);
@@ -4746,90 +4903,84 @@
 	µ.util=µ.util||{};
 
 	var SC=GMOD("shortcut")({
-		det:"Detached"
+		debug:"debug",
+		prom:"Promise"
 	});
-
-	REQ=µ.util.Request=function Request_init(param,scope)
+	var doRequest=function(signal,urls,param)
 	{
-		if(typeof param ==="string")
+		if(urls.length==0) signal.reject();
+		else
 		{
-			param={url:param};
-		}
-		param={
-			url:param.url,
-			method:param.data?"POST":"GET",
-			async:true,
-			user:param.user,//||undefined
-			password:param.password,//||undefined
-			responseType:param.responseType||"",
-			upload:param.upload,//||undefined
-			withCredentials:param.withCredentials===true,
-			contentType:param.contentType,//||undefined
-			data:param.data//||undefined
-		};
-		return new SC.det([function()
-		{
-			var signal=this;
+			var url=urls.shift();
 			var req=new XMLHttpRequest();
-			req.open(param.method,param.url,param.async,param.user,param.password);
+			req.open(param.method,url,true,param.user,param.password);
 			req.responseType=param.responseType;
-			if(param.contentType)
-			{
-				req.setRequestHeader("contentType", value);
-			}
-			else if (param.data)
-			{
-				param.contentType="application/x-www-form-urlencoded;charset=UTF-8";
-				if(param.data.consctuctor===Object)
-				{//is plain object
-					param.contentType="application/json;charset=UTF-8";
-					param.data=JSON.stringify(data);
-				}
-				req.setRequestHeader("contentType", param.contentType);
-			}
-			if(param.upload)
-			{
-				req.upload=param.upload;
-			}
 			req.onload=function()
 			{
 				if (req.status == 200)
 				{
-					signal.complete(req);
+					signal.resolve(req.response);
 				}
 				else
 				{
-					// todo try next if(Array.isArray(param.url))
-					signal.error(req.statusText);
+					SC.debug({url:url,status:req.statusText})
+					doRequest(signal,urls,param);
 				}
 			};
 			req.onerror=function()
 			{
-				// todo try next if(Array.isArray(param.url))
-				signal.error("Network Error");
+				SC.debug({url:url,status:"Network Error"})
+				doRequest(signal,urls,param);
 			};
 			if(param.progress)
 			{
 				req.onprogress=param.progress;
 			}
+			signal.onAbort(function(){
+				urls.length=0;
+				req.abort();
+			});
 			req.send(param.data);
-		},scope]);
+		}
+	}
+	REQ=µ.util.Request=function Request_init(param,scope)
+	{
+		var urls;
+		if(typeof param ==="string")
+		{
+			urls=[param];
+		}
+		else if (Array.isArray(param))
+		{
+			urls=param.slice();
+		}
+		else
+		{
+			urls=[].concat(param.url);
+		}
+		param={
+			method:param.method||(param.data?"POST":"GET"),
+			user:param.user,//||undefined
+			password:param.password,//||undefined
+			responseType:param.responseType||"",
+			withCredentials:param.withCredentials===true,
+			contentType:param.contentType,//||undefined
+			data:param.data//||undefined
+		};
+		return new SC.prom(doRequest,[urls,param],scope);
 	};
-	SMOD("Request",REQ);
+	SMOD("request",REQ);
 
 	REQ.json=function Request_Json(param,scope)
 	{
-		if(typeof param ==="string")//TODO ||Array.isArray(param))
+		if(typeof param ==="string")
 		{
 			param={url:param};
 		}
 		param.responseType="json";
-		var det=REQ(param);
-		var jDet=det.then(function(r){return r.response},true);
-		jDet.fn.push(scope);
-		return jDet;
+		return REQ(param,scope);
 	};
-	SMOD("Request.json",REQ.json);
+	SMOD("request.json",REQ.json);
 })(Morgas,Morgas.setModule,Morgas.getModule);
 //Morgas/src/DB/Morgas.DB.IndexedDBConnector.js
 (function(µ,SMOD,GMOD){
@@ -4841,6 +4992,7 @@
 	 *
 	 */
 	var DBC=GMOD("DBConn"),
+	LOGGER=GMOD("debug"),
 	SC=GMOD("shortcut")({
 		det:"Detached",
 		it:"iterate",
@@ -4855,7 +5007,7 @@
 
 		init:function(dbName)
 		{
-			this.superInit(DBC);
+			this.mega();
 			this.name=dbName;
 
 			SC.det.detacheAll(this,["_open"]);
@@ -4873,12 +5025,12 @@
 					var trans=db.transaction(objectType,"readwrite");
 					trans.onerror=function(event)
 					{
-						µ.debug(event, 0);
+						LOGGER.error(event);
 						tSignal.complete(event);
 					};
 					trans.oncomplete=function(event)
 					{
-						µ.debug(event, 2);
+						LOGGER.info(event);
 						tSignal.complete();
 					};
 					
@@ -4893,10 +5045,10 @@
 							method="add";
 						}
 						var req=store[method](obj);
-						req.onerror=function(event){µ.debug(event,0)};
+						req.onerror=LOGGER.error;
 						req.onsuccess=function(event)
 						{
-							µ.debug(event, 3);
+							LOGGER.debug(event);
 							object.setID&&object.setID(req.result);//if (!(object instanceof DBFRIEND)) {object.setID(req.result)} 
 						}
 					});
@@ -4921,7 +5073,7 @@
 					rtn=[];
 					trans.onerror=function(event)
 					{
-						µ.debug(event,0);
+						LOGGER.error(event);
 						db.close();
 						signal.error(event);
 					};
@@ -4939,11 +5091,11 @@
 							var req=store.get(ID);
 							req.onerror=function(event)
 							{
-								µ.debug(event,0);
+								LOGGER.error(event);
 							};
 							req.onsuccess=function(event)
 							{
-								µ.debug(event, 3);
+								LOGGER.debug(event);
 								if(SC.eq(req.result,pattern))
 								{
 									var inst=new objClass();
@@ -4958,7 +5110,7 @@
 						var req=store.openCursor();
 						req.onerror=function(event)
 						{
-							µ.debug(event,0);
+							LOGGER.error(event);
 							db.close();
 							signal.error(event);
 						};
@@ -4999,7 +5151,7 @@
 					trans=db.transaction(objectType,"readonly");
 					trans.onerror=function(event)
 					{
-						µ.debug(event,0);
+						LOGGER.error(event);
 						db.close();
 						signal.error(event);
 						_collectingSelf.error(event);
@@ -5014,7 +5166,7 @@
 					var req=store.openCursor();
 					req.onerror=function(event)
 					{
-						µ.debug(event,0);
+						LOGGER.error(event);
 						db.close();
 						signal.error(event);
 						_collectingSelf.error(event);
@@ -5042,7 +5194,7 @@
 						var trans=db.transaction(objClass.prototype.objectType,"readwrite");
 						trans.onerror=function(event)
 						{
-							µ.debug(event,0);
+							LOGGER.error(event);
 							db.close();
 							signal.error(event);
 						};
@@ -5053,12 +5205,12 @@
 							var req=store["delete"](ID);
 							req.onerror=function(event)
 							{
-								µ.debug(event,0);
+								LOGGER.error(event);
 								rSignal.complete(ID);
 							};
 							req.onsuccess=function(event)
 							{
-								µ.debug(event, 3);
+								LOGGER.debug(event);
 								rSignal.complete();
 							}
 						}));
@@ -5067,7 +5219,7 @@
 							db.close();
 							signal.complete(Array.prototype.slice.call(arguments));
 							this.complete();
-						},µ.debug);
+						},LOGGER.error);
 					});
 				}
 				else
@@ -5386,7 +5538,8 @@
 		rescope:"rescope",
 		proxy:"proxy",
         Org:"Organizer",
-		point:"Math.Point"
+		point:"Math.Point",
+		debug:"debug"
 	});
 	
 	var cursorFilter= function(image){return image instanceof GUI.Map.Cursor};
@@ -5397,9 +5550,9 @@
 		{
 			param=param||{};
 			
-			this.superInit(GUI,param);
+			this.mega(param);
 			this.createListener("trigger");
-			SC.rescope.all(["_animateCursor"],this);
+			SC.rescope.all(this,["_animateCursor"]);
 			
 			this.map=new MAP({
 				domElement:this.domElement,
@@ -5550,7 +5703,7 @@
 				if(!data.direction.equals(0)&&cursor)
 				{
 		            cursor.domElement.classList.add("moving");
-		            var distance=cursor.move(data.direction,timeDiff);
+		            var info=cursor.move(data.direction,timeDiff);
 
 					//step trigger
 		            //TODO step in/over/out
@@ -5562,7 +5715,7 @@
 							image:stepTrigger[i],
 							cursor:cursor,
 							value:stepTrigger[i].trigger.value,
-							distance:distance
+							distance:info.distance
 						});
 					}
 					
@@ -5688,7 +5841,9 @@
 	GUI.Map.MAX_TIME_DELAY=250;
     GUI.Map.Image=µ.Class(MAP.Image,{
     	init:function(url,position,size,name,collision,trigger){
-    		this.superInit(MAP.Image,url,position,size,name);
+    		this.mega(url,position,size,name);
+			
+			GMOD("shortcut")({"guiMap":["map","gui"]},this,this,true);
 
             this.collision=!!collision;
             this.trigger={
@@ -5710,7 +5865,7 @@
 		},
 		fromJSON:function(json)
 		{
-			MAP.Image.prototype.fromJSON.call(this,json);
+			this.mega(json);
 			this.collision=json.collision;
 			this.trigger=json.trigger;
 			
@@ -5718,9 +5873,13 @@
 		}
     });
 	GUI.Map.Cursor=µ.Class(GUI.Map.Image,{
-    	init:function(urls,position,size,offset,name,colision,trigger,speed)
+    	init:function(urls,position,size,offset,name,colision,viewOffset,viewSize,trigger,speed)
     	{
-    		this.superInit(GUI.Map.Image,GUI.Map.Cursor.emptyImage,position,size,name,colision,trigger);
+    		this.mega(GUI.Map.Cursor.emptyImage,position,size,name,colision,trigger);
+    		
+    		this.viewRect=this.rect.clone();
+    		this.viewRect.set(viewOffset,viewSize);
+    		
     		this.domElement.classList.add("cursor");
             this.domElement.style.zIndex=GUI.Map.Cursor.zIndexOffset;
             
@@ -5741,10 +5900,6 @@
     		this.direction=null;
     		this.updateDirection();
     	},
-        update:function()
-        {
-        	GUI.Map.Image.prototype.update.call(this);
-        },
         updateDirection:function()
         {
         	this.domElement.classList.remove("up","right","down","left");
@@ -5803,62 +5958,64 @@
     	move:function(direction,timediff)
     	{
     		this.direction=direction;
-    		var distance=new SC.point();
-			if(this.map)
+    		var rtn={
+				distance:new SC.point(this.direction).mul(this.speed).mul(timediff/1000),
+				collided:false
+			};
+			if(this.guiMap)
 			{
 				var size=this.map.getSize();
-				distance.set(this.direction).mul(this.speed).mul(timediff/1000);
 				
 				//map boundary
 				var pos=this.rect.position.clone().add(this.offset);
-				if(pos.x+distance.x<0)
+				if(pos.x+rtn.distance.x<0)
 				{
-					distance.x=-pos.x;
+					rtn.distance.x=-pos.x;
 				}
-				else if (pos.x+distance.x>size.x)
+				else if (pos.x+rtn.distance.x>size.x)
 				{
-					distance.x=size.x-pos.x;
+					rtn.distance.x=size.x-pos.x;
 				}
-				if(pos.y+distance.y<0)
+				if(pos.y+rtn.distance.y<0)
 				{
-					distance.y=-pos.y;
+					rtn.distance.y=-pos.y;
 				}
-				else if (pos.y+distance.y>size.y)
+				else if (pos.y+rtn.distance.y>size.y)
 				{
-					distance.y=size.y-pos.y;
+					rtn.distance.y=size.y-pos.y;
 				}
 				//collision
 				if(this.collision)
 				{
 					var progress=1;
 					var rect=this.rect.clone();
-					rect.position.add(distance);
-					var collisions=this.map.gui.collide(rect);
+					rect.position.add(rtn.distance);
+					var collisions=this.guiMap.collide(rect);
 					for(var i=0;i<collisions.length;i++)
 					{
 						var cImage=collisions[i];
 						var p=null;
-						if(cImage===this||this.rect.contains(cImage.rect)||cImage.rect.contains(this.rect))
+						if(cImage===this||this.rect.collide(cImage.rect)||cImage.rect.collide(this.rect))
 						{//is self or inside
 							continue;
 						}
+						rtn.collided=true;
+						if(rtn.distance.x>0&&this.rect.position.x+this.rect.size.x<=cImage.rect.position.x)
+						{
+							p=Math.max(p,(cImage.rect.position.x-this.rect.position.x-this.rect.size.x)/rtn.distance.x);
+						}
+						else if (rtn.distance.x<0&&this.rect.position.x>=cImage.rect.position.x+cImage.rect.size.x)
+						{
+							p=Math.max(p,(cImage.rect.position.x+cImage.rect.size.x-this.rect.position.x)/rtn.distance.x);
+						}
 						
-						if(distance.x>0&&this.rect.position.x+this.rect.size.x<=cImage.rect.position.x)
+						if(rtn.distance.y>0&&this.rect.position.y+this.rect.size.y<=cImage.rect.position.y)
 						{
-							p=Math.max(p,(cImage.rect.position.x-this.rect.position.x-this.rect.size.x)/distance.x);
+							p=Math.max(p,(cImage.rect.position.y-this.rect.position.y-this.rect.size.y)/rtn.distance.y);
 						}
-						else if (distance.x<0&&this.rect.position.x>=cImage.rect.position.x+cImage.rect.size.x)
+						else if (rtn.distance.y<0&&this.rect.position.y>=cImage.rect.position.y+cImage.rect.size.y)
 						{
-							p=Math.max(p,(cImage.rect.position.x+cImage.rect.size.x-this.rect.position.x)/distance.x);
-						}
-						
-						if(distance.y>0&&this.rect.position.y+this.rect.size.y<=cImage.rect.position.y)
-						{
-							p=Math.max(p,(cImage.rect.position.y-this.rect.position.y-this.rect.size.y)/distance.y);
-						}
-						else if (distance.y<0&&this.rect.position.y>=cImage.rect.position.y+cImage.rect.size.y)
-						{
-							p=Math.max(p,(cImage.rect.position.y+cImage.rect.size.y-this.rect.position.y)/distance.y);
+							p=Math.max(p,(cImage.rect.position.y+cImage.rect.size.y-this.rect.position.y)/rtn.distance.y);
 						}
 						
 						if(p!==null)
@@ -5866,13 +6023,21 @@
 							progress=Math.min(progress,p);
 						}
 					}
-					distance.mul(progress);
+					rtn.distance.mul(progress);
 				}
-				GUI.Map.Image.prototype.move.call(this,distance);
 			}
+			this.mega(rtn.distance);
 			this.updateDirection();
-			return distance;
+			return rtn;
     	},
+        update:function()
+        {
+        	var pos=this.rect.position,vPos=this.viewRect.position,vSize=this.viewRect.size;
+            this.domElement.style.top=pos.y+vPos.y+"px";
+            this.domElement.style.left=pos.x+vPos.x+"px";
+            this.domElement.style.height=vSize.y+"px";
+            this.domElement.style.width=vSize.x+"px";
+        },
 		toJSON:function()
 		{
 			var json=GUI.Map.Image.prototype.toJSON.call(this);
@@ -5880,16 +6045,20 @@
 			json.speed=this.speed;
 			delete json.url;
 			json.urls=this.urls.slice();
+			json.viewOffset=this.viewRect.position;
+			json.viewSize=this.viewRect.size;
 			return json;
 		},
 		fromJSON:function(json)
 		{
 			json.url=GUI.Map.Cursor.emptyImage;
-			GUI.Map.Image.prototype.fromJSON.call(this,json);
+			this.mega(json);
 			this.offset.set(json.offset);
 			this.speed.set(json.speed);
 			this.setUrls(json.urls);
-			
+			this.viewRect.copy(this.rect)
+			.setPosition(json.viewOffset)
+			.setSize(json.viewSize);
 			return this;
 		}
     });
@@ -5899,17 +6068,58 @@
     	init:function(cursor)
     	{
     		this.cursor=cursor;
-    		this.progress=0;
+    		this.done=true;
+			this.activeAction=null;
     	},
+		doAction:function(action)
+		{
+			this.activeAction=action;
+			this.done=false;
+		},
     	step:function(timeDiff)
     	{
-    		SC.debug("Abstract GUI.Map.Cursor.Animation used",SC.debug.LEVEL.WARNING);
+    		if(this.activeAction)
+			{
+				switch (this.activeAction.type.toUpperCase)
+				{
+					case "SET":
+						this.cursor.setPosition(this.activeAction.position);
+						this.activeAction=null
+						break;
+					case "FACE":
+						this.cursor.direction.set(this.activeAction.direction);
+						this.cursor.updateDirection();
+						this.activeAction=null
+						break;
+					case "WAIT":
+						if(this.activeAction.time-=timeDiff<0) this.activeAction=null;
+						break;
+					case "TURN":
+						break;
+					case "MOVE":
+						var dist=this.cursor.getPosition().negate().add(this.activeAction.position);
+						var dir=dist.clone().div(Math.max(Math.abs(dist.x),Math.abs(dist.y)));
+						var info=this.cursor.move(dir,timeDiff);
+						if(info.distance.length()>=dist.length())
+						{
+							this.cursor.setPosition(this.activeAction.position);
+							this.activeAction=null;
+						}
+						else if (info.collided)this.activeAction=null;
+						break;
+					default:
+						SC.debug("unknown action type: "+this.activeAction.type,SC.debug.LEVEL.ERROR);
+						this.activeAction=null
+				}
+			}
+			if(!this.activeAction) this.done=true;
+			return this.done;
     	}
     });
     GUI.Map.Cursor.Animation.Key=µ.Class(GUI.Map.Cursor.Animation,{ //key animation
     	init:function(cursor,keys)
     	{
-    		this.superInit(GUI.Map.Cursor.Animation,cursor);
+    		this.mega(cursor);
     		this.keys=keys;
     		
     		this.cursor.setPosition(this.keys[0]);
@@ -5963,7 +6173,8 @@
 			param=param||{};
 			param.element="fieldset";
 			
-			this.superInit(GUI,param);
+			this.mega(param);
+			this.addStyleClass("Dialog");
 			this.createListener("dialogEnd");
 			
 			this.legend=document.createElement("legend");
@@ -5982,7 +6193,6 @@
 			if(this.active)
 			{
 				this.active.destroy();
-				this.active.domElement.remove();
 			}
 			
 			if(this.dialogParts.length>0)
@@ -6014,7 +6224,7 @@
 					});
 					this.active.addListener("select:once",this,"next");
 				}
-				this.domElement.appendChild(this.active.domElement);
+				this.addChild(this.active);
 			}
 			else
 			{
@@ -6052,7 +6262,7 @@
 		{
 			param=param||{};
 			
-			this.superInit(DBOBJ,param);
+			this.mega(param);
 			
 			this.addField("map",		SC.field.TYPES.String,param.map);
 			this.addField("position",	SC.field.TYPES.JSON,param.position);
@@ -6100,7 +6310,7 @@
 		{
 			param=param||{};
 			
-			this.superInit(LAYER,{mode:LAYER.Modes.LAST});
+			this.mega({mode:LAYER.Modes.LAST});
 
 			this.domElement.classList.add("ActionMenu");
 			
@@ -6146,7 +6356,7 @@
 	
 	var SC=GMOD("shortcut")({
 		manager:"GUI.ControllerManager",
-		rj:"Request.json",
+		rj:"request.json",
 		debug:"debug"
 		/* default module
 		 * Layer.Persistance
@@ -6158,7 +6368,7 @@
 		{
 			param=param||{};
 			
-			this.superInit(AMENU,{
+			this.mega({
 				styleClass:["panel","center"],
 				actions:[
 					{
@@ -6201,22 +6411,22 @@
 						this.menu.setActive(0);
 						break;
 					case 2:
-						AMENU.prototype.onController.call(this,event);
+						this.mega(event);
 						break;
 				}
 			}
 			else
 			{
-				AMENU.prototype.onController.call(this,event);
+				this.mega(event);
 			}
 		},
 		newGame:function(item)
 		{
-			SC.rj(item.url,this).then(function(newGameJson,scope)
+			SC.rj(item.url,this).then(function(newGameJson)
 			{
-				var save=new scope.saveClass();
+				var save=new this.saveClass();
 				save.fromJSON(newGameJson);
-				scope.fire("start",{save:save});
+				this.fire("start",{save:save});
 			},
 			function(error)
 			{
@@ -6300,7 +6510,8 @@
 			{
 				menuParam.disabled=[1];
 			}
-			this.superInit(AMENU,menuParam);
+			else menuParam.active=1;
+			this.mega(menuParam);
 
 			this.domElement.classList.add("GameMenu");
 			this.createListener("start close");
@@ -6321,13 +6532,13 @@
 						this.menu.setActive(2);
 						break;
 					case 2:
-						AMENU.prototype.onController.call(this,event);
+						this.mega(event);
 						break;
 				}
 			}
 			else
 			{
-				AMENU.prototype.onController.call(this,event);
+				this.mega(event);
 			}
 		},
 		openControllerManager:function(item)
@@ -6412,6 +6623,147 @@
 	SMOD("proxy",uFn.proxy);
 	
 })(Morgas,Morgas.setModule,Morgas.getModule);
+//Morgas/src/Morgas.Promise.js
+(function(µ,SMOD,GMOD,HMOD){
+
+	var SC=GMOD("shortcut")({
+		debug:"debug",
+		rs:"rescope"
+	});
+	var PROM=µ.Promise=µ.Class({
+		init:function(fns,args,scope)
+		{
+			SC.rs.all(this,["_start","_error"]);
+			
+			this.scope=scope;
+			var _=this._={};
+			this.original=new Promise(function(rs,rj)
+			{
+				_.rs=rs;
+				_.rj=rj;
+			});
+			if(!args||args!==PROM._WAIT)
+			{
+				Promise.all(PROM._MAPFNS(fns,args,scope,SC.rs(this.original.catch,this.original))).then(_.rs,_.rj);
+				delete _.rs
+			}
+			else
+			{
+				_.fns=fns;
+			}
+			var _self=this,cleanup=function(){delete _self._;}
+			this.original.then(cleanup,cleanup);
+		},
+		_start:function(args)
+		{
+			this._.rs(Promise.all(PROM._MAPFNS(this._.fns,args,this.scope,SC.rs(this.original.catch,this.original))));
+		},
+		_error:function(error)
+		{
+			this._.rj(error);
+		},
+		complete:function(fn)
+		{
+			var rtn=new PROM(fn,PROM._WAIT,this.scope);
+			this.original.then(rtn._start,rtn._error);
+			return rtn;
+		},
+		error:function(efn)
+		{
+			var rtn=new PROM(efn,PROM._WAIT,this.scope);
+			this.original.then(rtn._error,rtn._start);
+			return rtn;
+		},
+		then:function(fn,efn)
+		{
+			this.error(efn);
+			return this.complete(fn);
+		},
+		always:function(fn)
+		{
+			var rtn=new PROM(fn,PROM._WAIT,this.scope);
+			this.original.then(rtn._start,rtn._start);
+			return rtn;
+		},
+		abort:function()
+		{
+			if(this._)this._error("abort");
+		},
+		destroy:function()
+		{
+			this.abort();
+			this.mega();
+		}
+	});
+	PROM._WAIT={};
+	PROM._MAPFNS=function(fns,args,scope,onAbort)
+	{
+		args=[].concat(args);
+		return [].concat(fns).map(function(fn)
+		{
+			if(typeof fn==="function")return new Promise(function(rs,rj)
+			{
+				var sArgs=args.slice();
+				//TODO change signal detection
+				var hasSignal=/\(\s*signal\s*[,\)]/.exec(fn);
+				if(hasSignal)
+				{
+					var signal={
+						resolve:rs,
+						reject:rj,
+						scope:scope,
+						onAbort:onAbort
+					};
+					sArgs.unshift(signal);
+				}
+				try
+				{
+					var result=fn.apply(scope,sArgs);
+					if(result&&typeof result.then==="function")
+					{
+						if(result instanceof PROM)result.original.then(function(r){return rs(r[0])},rj);
+						else result.then(rs,rj);
+					}
+					else if (result!==undefined||!hasSignal)
+					{
+						rs(result);
+					}
+				}
+				catch (e)
+				{
+					SC.debug(e,SC.debug.LEVEL.ERROR);
+					rj(e);
+				}
+			});
+			return fn;
+		});
+	};
+	PROM.pledge=function(fn,scope,args)
+	{
+		if(args===undefined)args=[];
+		else args=[].concat(args);
+		return function vow(sig)
+		{
+			if(vow.caller===PROM._MAPFNS)
+			{//called as chained µ.Promise
+				return fn.apply(scope,[sig].concat(args,Array.prototype.slice.call(arguments,1)));
+			}
+			var vArgs=args.concat(Array.prototype.slice.call(arguments));
+			return new PROM(fn,vArgs	,scope);
+		}
+	};
+	PROM.pledgeAll=function(scope,keys)
+	{
+		keys=keys||Object.keys(scope);
+		for(var i=0;i<keys.length;i++)
+		{
+			if(typeof scope[keys[i]]==="function")scope[keys[i]]=PROM.pledge(scope[keys[i]],scope);
+		}
+	};
+	
+	SMOD("Promise",PROM);
+	
+})(Morgas,Morgas.setModule,Morgas.getModule,Morgas.hasModule);
 //Morgas/src/Morgas.util.object.equals.js
 (function(µ,SMOD,GMOD){
 
@@ -7015,11 +7367,11 @@
 	var BOX=GUI.TextBox=µ.Class(GUI,{
 		init:function(param)
 		{
-			SC.rs.all(["_run"],this);
+			SC.rs.all(this,["_run"]);
 			
 			param=param||{};
 			
-			this.superInit(GUI,param);
+			this.mega(param);
 			this.addStyleClass("TextBox");
 			this.createListener("complete");
 			
@@ -7148,8 +7500,8 @@
 		{
 			param=param||{};
 			
-			this.superInit(LAYER,{mode:LAYER.Modes.LAST});
-			SC.rs.all(["_update","_fillMenu"],this);
+			this.mega({mode:LAYER.Modes.LAST});
+			SC.rs.all(this,["_update","_fillMenu"]);
 			
 			this.createListener("load");
 
@@ -7184,13 +7536,13 @@
 						else this.destroy();
 						break;
 					case 2:
-						LAYER.prototype.onController.call(this,event);
+						this.mega(event);
 						break;
 				}
 			}
 			else
 			{
-				LAYER.prototype.onController.call(this,event);
+				this.mega(event);
 			}
 		},
 		_update:function()
@@ -7276,8 +7628,8 @@
 	uObj.goPath=function(obj,path,create)
 	{
 		var todo=path;
-		if(typeof todo=="string")
-			todo=todo.split(".");
+		if(typeof todo=="string")todo=todo.split(".");
+		else todo=todo.slice();
 		
 		while(todo.length>0&&obj)
 		{
