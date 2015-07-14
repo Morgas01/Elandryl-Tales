@@ -3,7 +3,7 @@
 		"dialogParts":[
 			{
 				"bottom":"0",
-				"title":"Iiv",
+				"title":"Lif",
 				"parts":[
 					{
 						"text":"Ich bin wieder da"
@@ -37,7 +37,7 @@
 			},
 			{
 				"bottom":"0",
-				"title":"Iiv",
+				"title":"Lif",
 				"parts":[
 					{
 						"text":"OK mach ich."
@@ -45,6 +45,12 @@
 				]
 			}
 
+		],
+		"actions":[
+			{
+				"type":"ACTIVATE_QUEST",
+				"questName":"quest_1"
+			}
 		]
 	}
 }

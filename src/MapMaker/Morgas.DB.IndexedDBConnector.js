@@ -1,1 +1,320 @@
-(function(e,t,n){var r=n("DBConn"),s=n("shortcut")({det:"Detached",it:"iterate",eq:"equals",find:"find",DBObj:"DBObj",DBFriend:"DBFriend"}),i=e.Class(r,{init:function(e){this.superInit(r),this.name=e,s.det.detacheAll(this,["_open"])},save:function(t,n){n=[].concat(n);var r=i.sortObjs(n),o=Object.keys(r);this._open(o).then(function(n){var i=s.it(r,s.det.detache(function(t,r,i){var o=n.transaction(i,"readwrite");o.onerror=function(n){e.debug(n,0),t.complete(n)},o.oncomplete=function(n){e.debug(n,2),t.complete()};var a=o.objectStore(i);s.it(r,function(t){var n=t.toJSON(),r="put";void 0===n.ID&&(delete n.ID,r="add");var s=a[r](n);s.onerror=function(t){e.debug(t,0)},s.onsuccess=function(n){e.debug(n,3),t.setID&&t.setID(s.result)}})}),!1,!0);n.close(),t.complete(new s.det(i)),this.complete()},t.error)},load:function(t,n,r){this._open().then(function(i){if(i.objectStoreNames.contains(n.prototype.objectType)){var o=i.transaction(n.prototype.objectType,"readonly"),a=[];o.onerror=function(n){e.debug(n,0),i.close(),t.error(n)},o.oncomplete=function(){i.close(),t.complete(a)};var l=o.objectStore(n.prototype.objectType);if("number"==typeof r.ID||Array.isArray(r.ID))s.it([].concat(r.ID),function(t){var i=l.get(t);i.onerror=function(t){e.debug(t,0)},i.onsuccess=function(t){if(e.debug(t,3),s.eq(i.result,r)){var o=new n;o.fromJSON(i.result),a.push(o)}}});else{var u=l.openCursor();u.onerror=function(n){e.debug(n,0),i.close(),t.error(n)},u.onsuccess=function(){if(u.result){if(s.eq(u.result.value,r)){var e=new n;e.fromJSON(u.result.value),a.push(e)}u.result["continue"]()}}}}else i.close(),t.complete([]);this.complete()},t.error)},"delete":function(t,n,i){var o=this,a=n.prototype.objectType,l=null;if("number"==typeof i||i instanceof s.DBObj||i instanceof s.DBFriend||Array.isArray(i)){var u=r.getDeletePattern(n,i).ID;l=s.det.complete(u)}else l=this._open().then(function(n){var r=this,o=[],l=n.transaction(a,"readonly");l.onerror=function(s){e.debug(s,0),n.close(),t.error(s),r.error(s)},l.oncomplete=function(){n.close(),r.complete(o)};var u=l.objectStore(a),c=u.openCursor();c.onerror=function(s){e.debug(s,0),n.close(),t.error(s),r.error(s)},c.onsuccess=function(){c.result&&(s.eq(c.result.value,i)&&o.push(c.result.key),c.result["continue"]())}},t.error);l.then(function(r){return r.length>0?o._open().then(function(i){var o=i.transaction(n.prototype.objectType,"readwrite");o.onerror=function(n){e.debug(n,0),i.close(),t.error(n)};var l=o.objectStore(a),u=s.it(r,s.det.detache(function(t,n){var r=l["delete"](n);r.onerror=function(r){e.debug(r,0),t.complete(n)},r.onsuccess=function(n){e.debug(n,3),t.complete()}}));return new s.det(u).then(function(){i.close(),t.complete(Array.prototype.slice.call(arguments)),this.complete()},e.debug)}):(t.complete(!1),this.complete(),void 0)},function(e){db.close(),t.error(e,0),this.complete()})},destroy:function(){},_open:function(e,t){var n=this,r=indexedDB.open(this.name);r.onerror=function(t){e.error(t,0)},r.onsuccess=function(){for(var s=[],i=r.result,o=r.result.version,a=0;t&&t.length>a;a++)i.objectStoreNames.contains(t[a])||s.push(t[a]);if(0===s.length)e.complete(i);else{var l=indexedDB.open(n.name,o+1);l.onerror=function(t){e.error(t,0)},l.onupgradeneeded=function(){for(var e=0;s.length>e;e++)l.result.createObjectStore(s[e],{keyPath:"ID",autoIncrement:!0})},l.onsuccess=function(){n.version=l.result.version,e.complete(l.result)},i.close()}}}});i.sortObjs=function(e){for(var t={},n=0;e.length>n;n++){var r=e[n],s=r.objectType;void 0===t[s]&&(t[s]=[]),t[s].push(r)}return t},t("IndexedDBConnector",i),t("IDBConn",i)})(Morgas,Morgas.setModule,Morgas.getModule);
+(function(µ,SMOD,GMOD){
+	/**
+	 * Depends on	: Morgas DB 
+	 * Uses			: 
+	 *
+	 * DB.Connector for simple Javascript object
+	 *
+	 */
+	var DBC=GMOD("DBConn"),
+	LOGGER=GMOD("debug"),
+	SC=GMOD("shortcut")({
+		det:"Detached",
+		it:"iterate",
+		eq:"equals",
+		find:"find",
+		
+		DBObj:"DBObj",
+		DBFriend:"DBFriend"
+	});
+	
+	var ICON=DBC.IndexedDBConnector=µ.Class(DBC,{
+
+		init:function(dbName)
+		{
+			this.mega();
+			this.name=dbName;
+
+			SC.det.detacheAll(this,["_open"]);
+		},
+		
+		save:function(signal,objs)
+		{
+			objs=[].concat(objs);
+			var sortedObjs=ICON.sortObjs(objs);
+			var classNames=Object.keys(sortedObjs);
+			this._open(classNames).then(function(db)
+			{
+				var transactions=SC.it(sortedObjs,SC.det.detache(function(tSignal,objects,objectType)
+				{
+					var trans=db.transaction(objectType,"readwrite");
+					trans.onerror=function(event)
+					{
+						LOGGER.error(event);
+						tSignal.complete(event);
+					};
+					trans.oncomplete=function(event)
+					{
+						LOGGER.info(event);
+						tSignal.complete();
+					};
+					
+					var store = trans.objectStore(objectType);
+					SC.it(objects,function(object,i)
+					{
+						var obj=object.toJSON(),
+						method="put";
+						if(obj.ID===undefined)
+						{
+							delete obj.ID;
+							method="add";
+						}
+						var req=store[method](obj);
+						req.onerror=LOGGER.error;
+						req.onsuccess=function(event)
+						{
+							LOGGER.debug(event);
+							object.setID&&object.setID(req.result);//if (!(object instanceof DBFRIEND)) {object.setID(req.result)} 
+						}
+					});
+				}),false,true);
+				db.close();
+				signal.complete(new SC.det(transactions));
+				this.complete();
+			},signal.error);
+		},
+		load:function(signal,objClass,pattern)
+		{
+			this._open().then(function(db)
+			{
+				if(!db.objectStoreNames.contains(objClass.prototype.objectType))
+				{
+					db.close();
+					signal.complete([]);
+				}
+				else
+				{
+					var trans=db.transaction(objClass.prototype.objectType,"readonly"),
+					rtn=[];
+					trans.onerror=function(event)
+					{
+						LOGGER.error(event);
+						db.close();
+						signal.error(event);
+					};
+					trans.oncomplete=function()
+					{
+						db.close();
+						signal.complete(rtn);
+					};
+
+					var store = trans.objectStore(objClass.prototype.objectType);
+					if(typeof pattern.ID==="number"|| Array.isArray(pattern.ID))
+					{
+						var reqs=SC.it([].concat(pattern.ID),function(ID)
+						{
+							var req=store.get(ID);
+							req.onerror=function(event)
+							{
+								LOGGER.error(event);
+							};
+							req.onsuccess=function(event)
+							{
+								LOGGER.debug(event);
+								if(SC.eq(req.result,pattern))
+								{
+									var inst=new objClass();
+									inst.fromJSON(req.result);
+									rtn.push(inst);
+								}
+							}
+						});
+					}
+					else
+					{
+						var req=store.openCursor();
+						req.onerror=function(event)
+						{
+							LOGGER.error(event);
+							db.close();
+							signal.error(event);
+						};
+						req.onsuccess=function(event)
+						{
+							if(req.result)
+							{
+								if(SC.eq(req.result.value,pattern))
+								{
+									var inst=new objClass();
+									inst.fromJSON(req.result.value);
+									rtn.push(inst);
+								}
+								req.result["continue"]();
+							}
+						}
+					}
+				}
+				this.complete();
+			},signal.error);
+		},
+		"delete":function(signal,objClass,toDelete)
+		{
+			var _self=this,
+			objectType=objClass.prototype.objectType,
+			collectingIDs=null;
+			if(typeof toDelete==="number"||toDelete instanceof SC.DBObj||toDelete instanceof SC.DBFriend||Array.isArray(toDelete))
+			{
+				var ids=DBC.getDeletePattern(objClass,toDelete).ID;
+				collectingIDs=SC.det.complete(ids);
+			}
+			else
+			{
+				collectingIDs=this._open().then(function(db)
+				{
+					var _collectingSelf=this,
+					ids=[],
+					trans=db.transaction(objectType,"readonly");
+					trans.onerror=function(event)
+					{
+						LOGGER.error(event);
+						db.close();
+						signal.error(event);
+						_collectingSelf.error(event);
+					};
+					trans.oncomplete=function()
+					{
+						db.close();
+						_collectingSelf.complete(ids);
+					};
+
+					var store = trans.objectStore(objectType);
+					var req=store.openCursor();
+					req.onerror=function(event)
+					{
+						LOGGER.error(event);
+						db.close();
+						signal.error(event);
+						_collectingSelf.error(event);
+					};
+					req.onsuccess=function(event)
+					{
+						if(req.result)
+						{
+							if(SC.eq(req.result.value,toDelete))
+							{
+								ids.push(req.result.key);
+							}
+							req.result["continue"]();
+						}
+					}
+					
+				},signal.error)
+			}
+			collectingIDs.then(function(ids)
+			{
+				if(ids.length>0)
+				{
+					return _self._open().then(function(db)
+					{
+						var trans=db.transaction(objClass.prototype.objectType,"readwrite");
+						trans.onerror=function(event)
+						{
+							LOGGER.error(event);
+							db.close();
+							signal.error(event);
+						};
+						var store = trans.objectStore(objectType);
+						
+						var reqs=SC.it(ids,SC.det.detache(function(rSignal,ID)
+						{
+							var req=store["delete"](ID);
+							req.onerror=function(event)
+							{
+								LOGGER.error(event);
+								rSignal.complete(ID);
+							};
+							req.onsuccess=function(event)
+							{
+								LOGGER.debug(event);
+								rSignal.complete();
+							}
+						}));
+						return new SC.det(reqs).then(function()
+						{
+							db.close();
+							signal.complete(Array.slice(arguments));
+							this.complete();
+						},LOGGER.error);
+					});
+				}
+				else
+				{
+					signal.complete(false);
+					this.complete();
+				}
+			},function(event){
+				db.close();
+				signal.error(event,0);
+				this.complete();
+			});
+		},
+		destroy:function()
+		{
+			
+		},
+		_open:function(signal,classNames)
+		{
+			var _self=this;
+			var req=indexedDB.open(this.name);
+			req.onerror=function(event){
+				signal.error(event,0);
+			};
+			req.onsuccess=function()
+			{
+				var toCreate=[],
+				db=req.result,
+				version=req.result.version;
+				for(var i=0;classNames&&i<classNames.length;i++)
+				{
+					if(!db.objectStoreNames.contains(classNames[i]))
+					{
+						toCreate.push(classNames[i]);
+					}
+				}
+				if(toCreate.length===0)
+				{
+					signal.complete(db);
+				}
+				else
+				{
+					var req2=indexedDB.open(_self.name,version+1);
+					req2.onerror=function(event){
+						signal.error(event,0);
+					};
+					req2.onupgradeneeded=function()
+					{
+						for(var i=0;i<toCreate.length;i++)
+						{
+							req2.result.createObjectStore(toCreate[i],{keyPath:"ID",autoIncrement:true});
+						}
+					};
+					req2.onsuccess=function()
+					{
+						_self.version=req2.result.version;
+						signal.complete(req2.result);
+					};
+					db.close();
+				}
+			}
+		}
+	});
+	
+	ICON.sortObjs=function(objs)
+	{
+		var rtn={};
+		for(var i=0;i<objs.length;i++)
+		{
+			var obj=objs[i],
+			objType=obj.objectType;
+			
+			if(rtn[objType]===undefined)
+			{
+				rtn[objType]=[];
+			}
+			rtn[objType].push(obj);
+		}
+		return rtn;
+	};
+	SMOD("IndexedDBConnector",ICON);	
+	SMOD("IDBConn",ICON);
+})(Morgas,Morgas.setModule,Morgas.getModule);

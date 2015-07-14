@@ -1,1 +1,519 @@
-(function(t,e,n){var s,r,i,a,o=n("shortcut")({debug:"debug",det:"Detached"}),l=t.DB=t.DB||{};s=l.Connector=t.Class({init:function(){o.det.detacheAll(this,["save","load","delete","destroy"])},save:function(){throw Error("abstract Class DB.Connector")},load:function(){throw Error("abstract Class DB.Connector")},"delete":function(){throw Error("abstract Class DB.Connector")},destroy:function(){throw Error("abstract Class DB.Connector")},saveChildren:function(t,e){return this.save(t.getChildren(e))},saveFriendships:function(t,e){var n=t.relations[e],r=t.friends[e];if(!r)return o.debug("no friends in relation "+e+" found",2),new o.det.complete(!1);var i=r[0].relations[n.targetRelationName],a=t.getID();if(null==a)return o.debug("friend id is null",2),new o.det.complete(!1);for(var l=[],h=0;r.length>h;h++){var c=r[h].getID();null!=c&&l.push(c)}if(0===l.length)return o.debug("no friend with friend id found"),new o.det.complete(!1);var f=s.getFriendTableName(t.objectType,e,r[0].objectType,n.targetRelationName),d=t.objectType+"_ID",p=r[0].objectType+"_ID",g=[];n.relatedClass===i.relatedClass&&(p+=2);for(var h=0;l.length>h;h++)g.push(new u(f,d,a,p,l[h]));return this.save(g)},loadParent:function(t,e){var n=t.relations[e],s=n.relatedClass,r=n.fieldName;return this.load(s,{ID:t.getValueOf(r)}).then(function(n){var s=n[0];s.addChild(e,t),this.complete(s)})},loadChildren:function(t,e,n){var s=t.relations[e],r=rel.relatedClass,i=s.fieldName;return n[i]=this.getID(),this.load(r,n).then(function(e){t.addChildren(e),this.complete(e)})},loadFriends:function(t,e,n){var r=this,i=t.relations[e],a=i.relatedClass,l=(new a).relations[i.targetRelationName],h=t.objectType+"_ID",c=a.prototype.objectType+"_ID",f=s.getFriendTableName(t.objectType,e,a.prototype.objectType,i.targetRelationName),d={};i.relatedClass===l.relatedClass&&(c+=2),d[h]=t.getID();var p=u.Generator(f,h,c),g=this.load(p,d);return i.relatedClass===l.relatedClass&&(g=g.then(function(t){var e=this;d[c]=d[h],delete d[h],r.load(p,d).then(function(n){for(var s=0;n.length>s;s++){var r=n[s].fields[h].value;n[s].fields[h].value=n[s].fields[c].value,n[s].fields[c].value=r}e.complete(t.concat(n))},o.debug)},o.debug)),g.then(function(t){return n.ID=t.map(function(t){return t.fields[c].value}),r.load(a,n)},o.debug)},deleteFriendships:function(t,e){var n=t.relations[e],r=t.friends[e];if(!r)return o.debug("no friends in relation "+e+" found",2),new o.det.complete(!1);var i=r[0].relations[n.targetRelationName],a=t.getID();if(null==a)return o.debug("friend id is null",2),new o.det.complete(!1);for(var l=[],h=0;r.length>h;h++){var c=r[h].getID();null!=c&&l.push(c)}if(0===l.length)return o.debug("no friend with friend id found"),new o.det.complete(!1);var f=s.getFriendTableName(t.objectType,e,r[0].objectType,n.targetRelationName),d=t.objectType+"_ID",p=r[0].objectType+"_ID",g=[];if(n.relatedClass===i.relatedClass){p+=2;var v={};v[d]=l,v[p]=a,g.push(v)}var v={};v[d]=a,v[p]=l,g.push(v);for(var y=[],m=u.Generator(f,d,p),h=0;g.length>h;h++)y.push(this["delete"](m,g[h]));return new o.det(y)}}),s.sortObjs=function(t){for(var e={friend:{},fresh:{},preserved:{}},n=0;t.length>n;n++){var s=t[n],r=s instanceof u?"friend":void 0===s.getID()?"fresh":"preserved",i=s.objectType;void 0===e[r][i]&&(e[r][i]=[]),e[r][i].push(s)}return e},s.getDeletePattern=function(t,e){var n=typeof e;if(("number"===n||e instanceof l.Object)&&(e=[e]),Array.isArray(e)){for(var s=0;e.length>s;s++)e[s]instanceof t&&(e[s]=e[s].getID());e={ID:e}}return e},s.getFriendTableName=function(t,e,n,s){return[t,e,n,s].sort().join("_")},e("DBConn",s),r=l.Object=t.Class({objectType:null,init:function(t){if(t=t||{},null==this.objectType)throw"DB.Object: objectType not defined";this.fields={},this.relations={},this.parents={},this.children={},this.friends={},this.addField("ID",a.TYPES.INT,t.ID,{UNIQUE:!0,AUTOGENERATE:!0})},addRelation:function(t,e,n,s,r){this.relations[t]=new i(e,n,s||t,r)},addField:function(t,e,n,s){this.fields[t]=new a(e,n,s)},getValueOf:function(t){return this.fields[t].getValue()},setValueOf:function(t,e){"ID"!=t&&this.fields[t].setValue(e)},setID:function(t){this.fields.ID.setValue(t);for(var e in this.children)for(var n=this.children[e],s=0;n.length>s;s++)n[s]._setParent(this.relations[e],this)},getID:function(){return this.getValueOf("ID")},getParent:function(t){return this.parents[t]},_setParent:function(t,e){var n=this.relations[t.targetRelationName];this.parents[t.targetRelationName]=e,this.setValueOf(n.fieldName,e.getValueOf(t.fieldName))},_add:function(t,e,n){var s=t[e]=t[e]||[];-1==s.indexOf(n)&&s.push(n)},_get:function(t,e){return(t[e]||[]).slice(0)},addChild:function(t,e){this.relations[t].type==i.TYPES.CHILD&&(this._add(this.children,t,e),e._setParent(this.relations[t],this))},addChildren:function(t,e){for(var n=0;e.length>n;n++)this.addChild(t,e[n])},getChildren:function(t){return this._get(this.children,t)},addFriend:function(t,e){this.relations[t].type==i.TYPES.FRIEND&&(this._add(this.friends,t,e),e._add(e.friends,this.relations[t].targetRelationName,this))},addFriends:function(t,e){for(var n=0;e.length>n;n++)this.addFriend(t,e[n])},getFriends:function(t){return this._get(this.friends,t)},toJSON:function(){var t={};for(var e in this.fields)t[e]=this.fields[e].toJSON();return t},fromJSON:function(t){for(var e in this.fields)void 0!==t[e]&&this.fields[e].fromJSON(t[e]);return this},toString:function(){return JSON.stringify(this)}}),e("DBObj",r);var u=l.Firendship=t.Class({init:function(t,e,n,s,r){this.objectType=t,this.fields={},this.fields[e]=new a(a.TYPES.INT,n),this.fields[s]=new a(a.TYPES.INT,r)},toJSON:r.prototype.toJSON,fromJSON:r.prototype.fromJSON});u.Generator=function(e,n,s){return t.Class(u,{objectType:e,init:function(){this.superInit(u,e,n,null,s,null)}})},e("DBFriend",u),i=l.Relation=t.Class({init:function(t,e,n,s){if(null==s){if(e==i.TYPES.PARENT)throw"DB.Relation: "+e+" relation needs a fieldName";s="ID"}this.type=e,this.relatedClass=t,this.fieldName=s,this.targetRelationName=n}}),i.TYPES={PARENT:-1,FRIEND:0,CHILD:1},e("DBRel",i),a=l.Field=t.Class({init:function(t,e,n){this.type=t,this.value=e,this.options=n||{}},setValue:function(t){this.value=t},getValue:function(){return this.value},toJSON:function(){switch(this.type){case a.TYPES.DATE:var t=this.getValue();if(t instanceof Date)return t.getUTCFullYear()+","+t.getUTCMonth()+","+t.getUTCDate()+","+t.getUTCHours()+","+t.getUTCMinutes()+","+t.getUTCSeconds()+","+t.getUTCMilliseconds();break;default:return this.getValue()}},fromJSON:function(t){switch(this.type){case a.TYPES.DATE:this.value=new Date(Date.UTC.apply(Date,t.split(",")));break;default:this.value=t}},toString:function(){return JSON.stringify(this)},fromString:function(t){switch(this.type){case a.TYPES.BOOL:this.value=!!~~t;break;case a.TYPES.INT:this.value=~~t;break;case a.TYPES.DOUBLE:this.value=1*t;break;case a.TYPES.DATE:this.fromJSON(JSON.parse(t));break;case a.TYPES.STRING:case a.TYPES.JSON:default:this.value=JSON.parse(t)}}}),a.TYPES={BOOL:0,INT:1,DOUBLE:2,STRING:3,DATE:4,JSON:5,BLOB:6},e("DBField",a)})(Morgas,Morgas.setModule,Morgas.getModule);
+(function(µ,SMOD,GMOD){
+	/**
+	 * Depends on	: Morgas
+	 * Uses			: util.object, Detached
+	 *
+	 * Database Classes
+	 *
+	 */
+
+	var SC=GMOD("shortcut")({
+		debug:"debug",
+		det:"Detached"
+	});
+	
+	var DB=µ.DB=µ.DB||{};
+	
+	var DBC,TRAN,STMT,DBOBJECT,REL,FIELD;
+	
+	DBC=DB.Connector=µ.Class(
+	{
+		/* override these */
+		init:function()
+		{
+			SC.det.detacheAll(this,["save","load","delete","destroy"]);
+		},
+		
+		save:function(signal,objs)
+		{
+			/*
+			objs=[].concat(objs);
+			var sortedObjs=DBC.sortObjs(objs);
+			*/
+			throw new Error("abstract Class DB.Connector");
+		},
+		load:function(signal,objClass,pattern)
+		{
+			throw new Error("abstract Class DB.Connector");
+		},
+		"delete":function(signal,objClass,toDelete)
+		{
+			/*
+			var toDelete=DBC.getDeletePattern(objClass,toDelete);
+			*/
+			throw new Error("abstract Class DB.Connector");
+		},
+		destroy:function()
+		{
+			throw new Error("abstract Class DB.Connector");
+		},
+		
+		/* these should be same for everyone*/
+		saveChildren:function(obj,relationName)
+		{
+			return this.save(obj.getChildren(relationName));
+		},
+		saveFriendships:function(obj,relationName)
+		{
+			var rel=obj.relations[relationName],
+				friends=obj.friends[relationName];
+			if(!friends)
+			{
+				SC.debug("no friends in relation "+relationName+" found",2);
+				return new SC.det.complete(false);
+			}
+			var fRel=friends[0].relations[rel.targetRelationName],
+				id=obj.getID();
+			if(id==null)
+			{
+				SC.debug("friend id is null",2);
+				return new SC.det.complete(false);
+			}
+			var fids=[];
+			for(var i=0;i<friends.length;i++)
+			{
+				var fid=friends[i].getID();
+				if(fid!=null)
+					fids.push(fid);
+			}
+			if(fids.length===0)
+			{
+				SC.debug("no friend with friend id found");
+				return new SC.det.complete(false);
+			}
+			var tableName=DBC.getFriendTableName(obj.objectType,relationName,friends[0].objectType,rel.targetRelationName),
+				idName=obj.objectType+"_ID",
+				fidName=friends[0].objectType+"_ID",
+				toSave=[];
+			if (rel.relatedClass===fRel.relatedClass)
+			{
+				fidName+=2;
+			}
+			for(var i=0;i<fids.length;i++)
+			{
+				toSave.push(new DBFRIEND(tableName,idName,id,fidName,fids[i]));
+			}
+			return this.save(toSave);
+		},
+		
+		loadParent:function(obj,relationName)
+		{
+			var relation=obj.relations[relationName],
+				parentClass=relation.relatedClass,
+				fieldName=relation.fieldName;
+			return this.load(parentClass,{ID:obj.getValueOf(fieldName)}).then(function(result)
+			{
+				var parent=result[0];
+				parent.addChild(relationName,obj);
+				this.complete(parent);
+			});
+		},
+		loadChildren:function(obj,relationName,pattern)
+		{
+			var relation=obj.relations[relationName],
+				childClass=rel.relatedClass,
+				fieldName=relation.fieldName;
+			pattern[fieldName]=this.getID();
+			return this.load(childClass,pattern).then(function(children)
+			{
+				obj.addChildren(children);
+				this.complete(children);
+			});
+		},
+		loadFriends:function(obj,relationName,pattern)
+		{
+			var _self=this,
+				rel=obj.relations[relationName],
+				friendClass=rel.relatedClass,
+				fRel=new friendClass().relations[rel.targetRelationName],
+				id=obj.objectType+"_ID",
+				fid=friendClass.prototype.objectType+"_ID",
+				type=DBC.getFriendTableName(obj.objectType,relationName,friendClass.prototype.objectType,rel.targetRelationName),
+				fPattern={};
+			
+			if (rel.relatedClass===fRel.relatedClass)
+			{
+				fid+=2;
+			}
+			fPattern[id]=obj.getID();
+			var friendship=DBFRIEND.Generator(type,id,fid);
+			
+			var p=this.load(friendship,fPattern);
+			
+			if (rel.relatedClass===fRel.relatedClass)
+			{
+				p=p.then(function(results)
+				{
+					var signal=this;
+					fPattern[fid]=fPattern[id];
+					delete fPattern[id];
+					_self.load(friendship,fPattern).then(function(results2)
+					{
+						for(var i=0;i<results2.length;i++)
+						{
+							var t=results2[i].fields[id].value;
+							results2[i].fields[id].value=results2[i].fields[fid].value;
+							results2[i].fields[fid].value=t;
+						}
+						signal.complete(results.concat(results2));
+					},SC.debug);
+				},SC.debug)
+			}
+			return p.then(function(results)
+			{
+				pattern.ID=results.map(function(val)
+				{
+					return val.fields[fid].value;
+				});
+				return _self.load(friendClass,pattern);
+			},SC.debug);
+		},
+		deleteFriendships:function(obj,relationName)
+		{
+			var rel=obj.relations[relationName],
+				friends=obj.friends[relationName];
+			if(!friends)
+			{
+				SC.debug("no friends in relation "+relationName+" found",2);
+				return new SC.det.complete(false);
+			}
+			var fRel=friends[0].relations[rel.targetRelationName],
+				id=obj.getID();
+			if(id==null)
+			{
+				SC.debug("friend id is null",2);
+				return new SC.det.complete(false);
+			}
+			var fids=[];
+			for(var i=0;i<friends.length;i++)
+			{
+				var fid=friends[i].getID();
+				if(fid!=null)
+					fids.push(fid);
+			}
+			if(fids.length===0)
+			{
+				SC.debug("no friend with friend id found");
+				return new SC.det.complete(false);
+			}
+			var tableName=DBC.getFriendTableName(obj.objectType,relationName,friends[0].objectType,rel.targetRelationName),
+				idName=obj.objectType+"_ID",
+				fidName=friends[0].objectType+"_ID",
+				toDelete=[];
+			if (rel.relatedClass===fRel.relatedClass)
+			{
+				fidName+=2;
+				var pattern={};
+				pattern[idName]=fids;
+				pattern[fidName]=id;
+				toDelete.push(pattern);
+			}
+			var pattern={};
+			pattern[idName]=id;
+			pattern[fidName]=fids;
+			toDelete.push(pattern);
+			
+			var wait=[],
+			fClass=DBFRIEND.Generator(tableName,idName,fidName);
+			for(var i=0;i<toDelete.length;i++)
+			{
+				wait.push(this["delete"](fClass,toDelete[i]));
+			}
+			return new SC.det(wait)
+		}
+	});
+
+	DBC.sortObjs=function(objs)
+	{
+		var rtn={friend:{},fresh:{},preserved:{}};
+		for(var i=0;i<objs.length;i++)
+		{
+			var obj=objs[i],
+			type=(obj instanceof DBFRIEND ? "friend" :(obj.getID()===undefined ? "fresh" : "preserved")),
+			objType=obj.objectType;
+			
+			if(rtn[type][objType]===undefined)
+			{
+				rtn[type][objType]=[];
+			}
+			rtn[type][objType].push(obj);
+		}
+		return rtn;
+	};
+	//make toDelete a Pattern from Number, DB.Object or Array
+	DBC.getDeletePattern=function(objClass,toDelete)
+	{
+		var type=typeof toDelete;
+		if(type==="number" || toDelete instanceof DB.Object)
+		{
+			toDelete=[toDelete];
+		}
+		if(Array.isArray(toDelete))
+		{
+			for(var i=0;i<toDelete.length;i++)
+			{
+				if(toDelete[i] instanceof objClass)
+				{
+					toDelete[i]=toDelete[i].getID();
+				}
+			}
+			toDelete={ID:toDelete};
+		}
+		return toDelete;
+	};
+	DBC.getFriendTableName=function(objType,relationName,friendType,friendRelationName)
+	{
+		return [objType,relationName,friendType,friendRelationName].sort().join("_");
+	};
+	SMOD("DBConn",DBC);
+	
+	DBOBJECT=DB.Object=µ.Class(
+	{
+		objectType:null,
+		init:function(param)
+		{
+			param=param||{};
+			if(this.objectType==null)
+				throw "DB.Object: objectType not defined";
+						
+			this.fields={};
+			
+			this.relations={};
+			this.parents={};	//n:1
+			this.children={};	//1:n
+			this.friends={};	//n:m
+			
+			this.addField("ID",FIELD.TYPES.INT,param.ID,{UNIQUE:true,AUTOGENERATE:true});
+		},
+		addRelation:function(name,relatedClass,type,targetRelationName,fieldName)
+		{
+			this.relations[name]=new REL(relatedClass,type,targetRelationName||name,fieldName);
+		},
+		addField:function(name,type,value,options)
+		{
+			this.fields[name]=new FIELD(type,value,options);
+		},
+		getValueOf:function(fieldName){return this.fields[fieldName].getValue();},
+		setValueOf:function(fieldName,val){if(fieldName!="ID")this.fields[fieldName].setValue(val);},
+		setID:function(val)
+		{
+			this.fields["ID"].setValue(val);
+			for(var c in this.children)
+			{
+				var children=this.children[c];
+				for(var i=0;i<children.length;i++)
+				{
+					children[i]._setParent(this.relations[c],this);
+				}
+			}
+		},
+		getID:function(){return this.getValueOf("ID");},
+		getParent:function(relationName)
+		{
+			return this.parents[relationName];
+		},
+		_setParent:function(pRel,parent)
+		{
+			var cRel=this.relations[pRel.targetRelationName];
+			this.parents[pRel.targetRelationName]=parent;
+			this.setValueOf(cRel.fieldName,parent.getValueOf(pRel.fieldName));
+		},
+		_add:function(container,relationName,value)
+		{
+			var c=container[relationName]=container[relationName]||[];
+			if(c.indexOf(value)==-1)
+				c.push(value);
+		},
+		_get:function(container,relationName)
+		{
+			return (container[relationName]||[]).slice(0);
+		},
+		addChild:function(relationName,child)
+		{
+			if(this.relations[relationName].type==REL.TYPES.CHILD)
+			{
+				this._add(this.children,relationName,child);
+				child._setParent(this.relations[relationName],this);
+			}
+		},
+		addChildren:function(relationName,children)
+		{
+			for(var i=0;i<children.length;i++)
+			{
+				this.addChild(relationName,children[i]);
+			}
+		},
+		getChildren:function(relationName)
+		{
+			return this._get(this.children,relationName);
+		},
+		addFriend:function(relationName,friend)
+		{
+			if(this.relations[relationName].type==REL.TYPES.FRIEND)
+			{
+				this._add(this.friends,relationName,friend);
+				friend._add(friend.friends,this.relations[relationName].targetRelationName,this);
+			}
+		},
+		addFriends:function(relationName,friends)
+		{
+			for(var i=0;i<friends.length;i++)
+			{
+				this.addFriend(relationName,friends[i]);
+			}
+		},
+		getFriends:function(relationName)
+		{
+			return this._get(this.friends,relationName);
+		},
+		toJSON:function()
+		{
+			var rtn={};
+			for(var f in this.fields)
+			{
+				rtn[f]=this.fields[f].toJSON();
+			}
+			return rtn;
+		},
+		fromJSON:function(jsonObject)
+		{
+			for(var i in this.fields)
+			{
+				if(jsonObject[i]!==undefined)
+				{
+					this.fields[i].fromJSON(jsonObject[i]);
+				}
+			}
+			return this;
+		},
+		toString:function()
+		{
+			return JSON.stringify(this);
+		}
+	});
+	SMOD("DBObj",DBOBJECT);
+	
+	var DBFRIEND=DB.Firendship=µ.Class(
+	{
+		init:function(type,fieldName1,value1,fieldName2,value2)
+		{
+			this.objectType=type;
+			this.fields={};
+			this.fields[fieldName1]=new FIELD(FIELD.TYPES.INT,value1);
+			this.fields[fieldName2]=new FIELD(FIELD.TYPES.INT,value2);
+		},
+		toJSON:DBOBJECT.prototype.toJSON,
+		fromJSON:DBOBJECT.prototype.fromJSON
+	});
+	DBFRIEND.Generator=function(type,fieldname1,fieldname2)
+	{
+		return µ.Class(DBFRIEND,
+		{
+			objectType:type,
+			init:function(){
+				this.mega(type,fieldname1,null,fieldname2,null);
+			}
+		});
+	};
+	SMOD("DBFriend",DBFRIEND);
+	
+	REL=DB.Relation=µ.Class(
+	{
+		init:function(relatedClass,type,targetRelationName,fieldName)
+		{
+			if(fieldName==null)
+			{
+				if(type==REL.TYPES.PARENT)
+					throw "DB.Relation: "+type+" relation needs a fieldName";
+				else
+					fieldName="ID";
+			}
+			this.type=type;
+			this.relatedClass=relatedClass;
+			this.fieldName=fieldName;
+			this.targetRelationName=targetRelationName;
+		}
+	});
+	REL.TYPES={
+		"PARENT"	:-1,
+		"FRIEND"	:0,
+		"CHILD"		:1
+	};
+	SMOD("DBRel",REL);
+	
+	FIELD=DB.Field=µ.Class(
+	{
+		init:function(type,value,options)
+		{
+			this.type=type;
+			this.value=value;
+			this.options=options||{};	// depends on connector
+		},
+		setValue:function(val)
+		{
+			this.value=val;
+		},
+		getValue:function(){return this.value;},
+		toJSON:function()
+		{
+			switch(this.type)
+			{
+				case FIELD.TYPES.DATE:
+					var date=this.getValue();
+					if(date instanceof Date)
+						return date.getUTCFullYear()+","+date.getUTCMonth()+","+date.getUTCDate()+","+date.getUTCHours()+","+date.getUTCMinutes()+","+date.getUTCSeconds()+","+date.getUTCMilliseconds();
+					break;
+				default:
+					return this.getValue();
+			}
+		},
+		fromJSON:function(jsonObj)
+		{
+			switch(this.type)
+			{
+				case FIELD.TYPES.DATE:
+					this.value=new Date(Date.UTC.apply(Date,jsonObj.split(",")));
+					break;
+				default:
+					this.value=jsonObj;
+			}
+		},
+		toString:function()
+		{
+			return JSON.stringify(this);
+		},
+		fromString:function(val)
+		{
+			switch(this.type)
+			{
+				case FIELD.TYPES.BOOL:
+					this.value=!!(~~val);
+					break;
+				case FIELD.TYPES.INT:
+					this.value=~~val;
+					break;
+				case FIELD.TYPES.DOUBLE:
+					this.value=1*val;
+					break;
+				case FIELD.TYPES.DATE:
+					this.fromJSON(JSON.parse(val));
+					break;
+				case FIELD.TYPES.STRING:
+				case FIELD.TYPES.JSON:
+				default:
+					this.value=JSON.parse(val);
+					break;
+			}
+		}
+	});
+	FIELD.TYPES={
+		"BOOL"		:0,
+		"INT"		:1,
+		"DOUBLE"	:2,
+		"STRING"	:3,
+		"DATE"		:4,
+		"JSON"		:5,
+		"BLOB"		:6
+	};
+	SMOD("DBField",FIELD);
+})(Morgas,Morgas.setModule,Morgas.getModule);
