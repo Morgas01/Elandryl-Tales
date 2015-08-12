@@ -43,3 +43,16 @@ body {
     font-weight: bold;
     color: #00FFFF;
 }
+/* map */
+.GUIElement.Map [data-name~="right"] {
+	transform: rotate(90deg);
+}
+.GUIElement.Map [data-name~="down"] {
+	transform: rotate(180deg);
+}
+.GUIElement.Map [data-name~="left"] {
+	transform: rotate(-90deg);
+}
+.GUIElement.Map [data-name~="door"] {
+	background-image: url("../resources/images/door.svg");
+}
